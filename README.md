@@ -17,7 +17,8 @@ I’m a full-stack developer and systems builder. I build websites, AI/API integ
 
 **Web & AI:** TypeScript / JavaScript, React, HTML & CSS, Bun, Python, OpenAI API.  
 **Apps & hardware:** Kotlin / Jetpack Compose, Flutter / Dart, Raspberry Pi, YOLO.  
-**Shipping:** Docker, GitHub Actions, Cloudflare.
+**Shipping:** Docker, GitHub Actions, Cloudflare.  
+**Publishing:** Android apps on Google Play and Windows apps on the Microsoft Store.
 
 ## What are you working on?
 
