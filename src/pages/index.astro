@@ -1,0 +1,75 @@
+---
+import Icon from '../components/Icon.astro';
+import '../styles/global.css';
+
+const services = [
+ { icon: 'globe', title: 'Websites', text: 'Fast, responsive websites built for real people.' },
+ { icon: 'phone', title: 'Mobile Apps', text: 'Android and cross-platform experiences.' },
+ { icon: 'chip', title: 'AI Integrations', text: 'Practical AI with a useful job to do.' },
+ { icon: 'gear', title: 'Custom Software', text: 'Tools and systems that solve your problem.' }
+];
+const projects = [
+ { title: 'SmartVehicle', text: 'A Raspberry Pi vision platform with a native Android control station. 4th place + Special Award at Galaksija Cup.', tags: ['Python', 'Raspberry Pi', 'Computer Vision'], image: 'smart-vehicle.avif', alt: 'The actual SmartVehicle robotics build', repo: 'https://github.com/smartvehiclelab/android-client', store: null },
+ { title: 'AutoDark', text: 'Automatic Windows 11 light and dark mode at sunrise and sunset. Published on Microsoft Store.', tags: ['.NET', 'Windows', 'Microsoft Store'], image: 'autodark.png', alt: 'AutoDark application icon', repo: 'https://github.com/danilostoletovic/AutoDark', store: 'https://apps.microsoft.com/store/detail/9PMGPB2JQQWT?cid=DevShareMCLPCS' },
+ { title: 'Ana, AI Secretary', text: 'A public portfolio assistant built with Cloudflare Workers, clear boundaries, and a personality of her own.', tags: ['Cloudflare', 'AI', 'Conversational UI'], image: 'ana.jpg', alt: 'Ana AI secretary conversation interface', repo: 'https://github.com/danilostoletovic/secretary', store: null }
+];
+---
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Danilo Stoletović — developer and systems builder from Niš, Serbia. Explore web, mobile, Windows and practical AI projects." />
+  <meta name="theme-color" content="#101620" />
+  <title>Danilo Stoletović — Developer & Builder</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id="72126cdf-b4c4-49ba-8661-a3eca4d7d688"></script>
+ </head>
+ <body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="landscape" aria-hidden="true"></div>
+  <div class="site-shell" id="home">
+   <header class="glass header">
+    <a class="wordmark" href="#home">Danilo Stoletović</a>
+    <nav aria-label="Main navigation">
+     <a class="active" href="#home">Home</a><a href="#about">About</a><a href="#projects">Projects</a><a href="#blog">Blog</a><a href="#contact">Contact</a>
+    </nav>
+    <a class="button github-button" href="#contact"><Icon name="mail"/> Contact <Icon name="arrow"/></a>
+   </header>
+   <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+     <div class="hero-copy">
+      <div class="eyebrow">Developer <b>·</b> Builder <b>·</b> Student</div>
+      <h1 id="hero-title">Building practical<br class="desktop-break"/> software for a<br class="desktop-break"/> more <em>open</em> world.</h1>
+      <p>I'm Danilo, a developer and systems builder from Serbia.<br class="wide-break"/> I build web and mobile apps, experiment with AI, and work on projects that solve real problems.</p>
+      <div class="hero-actions"><a class="button primary" href="#contact"><Icon name="mail"/>Get in touch<Icon name="arrow"/></a><a class="button secondary" href="#projects">View my work<Icon name="down"/></a></div>
+     </div>
+     <figure class="portrait glass"><img src="/images/danilo.avif" alt="Danilo Stoletović" width="280" height="350" fetchpriority="high"/><figcaption><Icon name="pin"/>Niš, Serbia</figcaption></figure>
+     <div class="stats">
+      <div class="stat glass"><span class="icon-box lilac"><Icon name="cap"/></span><div><strong>Student</strong><small>Electrical & Computer Science</small></div></div>
+      <div class="stat glass"><span class="icon-box blue"><Icon name="code"/></span><div><strong>3+ years</strong><small>Building software</small></div></div>
+      <div class="stat glass"><span class="icon-box cyan"><Icon name="globe"/></span><div><strong>Across platforms</strong><small>Web, mobile & Windows</small></div></div>
+      <div class="stat glass"><span class="icon-box gold"><Icon name="bolt"/></span><div><strong>Always</strong><small>Learning & building</small></div></div>
+     </div>
+    </section>
+    <section class="services glass" aria-label="What I build">
+     {services.map(service => <a href="#contact" class="service"><span class="icon-box lilac"><Icon name={service.icon}/></span><div><h2>{service.title}</h2><p>{service.text}</p></div></a>)}
+    </section>
+    <section id="projects" class="projects-section" aria-labelledby="projects-heading">
+     <div class="section-heading"><h2 id="projects-heading">Featured Projects</h2></div>
+     <div class="projects">{projects.map(project => <article class="project glass"><div class="project-copy"><h3>{project.title}</h3><p>{project.text}</p></div><img class:list={['project-image', { 'app-icon': project.image === 'autodark.png' }]} src={'/images/' + project.image} alt={project.alt} width="180" height="160" loading="lazy"/><div class="project-footer"><div class="tags">{project.tags.map(tag => <span>{tag}</span>)}</div><div class="project-links"><a href={project.repo} target="_blank" rel="noreferrer" aria-label={project.title + ' GitHub repository (opens in a new tab)'} title="View GitHub repository"><Icon name="github"/></a>{project.store && <a href={project.store} target="_blank" rel="noreferrer" aria-label="AutoDark on Microsoft Store (opens in a new tab)" title="Get AutoDark from Microsoft Store"><Icon name="store"/></a>}</div></div></article>)}</div>
+    </section>
+    <div class="bottom-grid">
+     <section id="about" aria-labelledby="about-heading"><h2 id="about-heading">About Me</h2><p>I'm a final-year Electrical & Computer Science student at ETŠ Nikola Tesla in Niš, Serbia. I connect what I learn to the things I build, from Android apps to robotics.</p><p>I take projects from idea through architecture, implementation, and release.</p><nav class="press-pills" aria-label="Press and recognition">
+       <a href="https://galaksijakup.rs/pobednici-galaksija-kupa-2026/" target="_blank" rel="noreferrer" aria-label="Galaksija Kup official results (opens in a new tab)">Galaksija Kup <span aria-hidden="true">↗</span></a>
+       <a href="https://www.metropolitan.ac.rs/novosti/mladi-it-talenti-stvarali-prve-digitalne-projekte-na-make-it-day-met-2026/" target="_blank" rel="noreferrer" aria-label="Metropolitan Make IT Day article (opens in a new tab)">Metropolitan <span aria-hidden="true">↗</span></a>
+       <a href="https://www.blic.rs/biznis/tech/elektrotehnicka-skola-nikola-tesla-u-nisu-dobila-mejkers-lab/j3jbeby" target="_blank" rel="noreferrer" aria-label="Blic Mejkers Lab article (opens in a new tab)">Blic <span aria-hidden="true">↗</span></a>
+      </nav></section>
+     <section id="blog" aria-labelledby="blog-heading"><h2 id="blog-heading">Blog</h2></section>
+     <section id="contact" aria-labelledby="contact-heading"><h2 id="contact-heading">Get in Touch</h2><p>Have a project, opportunity, or just want to say hi?<br/>Feel free to reach out.</p><a class="email glass" href="mailto:contact@danilostoletovic.com"><Icon name="mail"/><span>contact@danilostoletovic.com</span><span>↗</span></a><div class="socials"><a class="glass" href="https://github.com/danilostoletovic" target="_blank" rel="noreferrer"><Icon name="github"/>GitHub</a><a class="glass" href="https://linkedin.com/in/danilostoletovic" target="_blank" rel="noreferrer"><Icon name="linkedin"/>LinkedIn</a><a class="glass whatsapp" href="https://wa.me/381677732060" target="_blank" rel="noreferrer"><Icon name="chat"/>WhatsApp</a></div></section>
+    </div>
+   </main>
+   <footer><span>© {new Date().getFullYear()} Danilo Stoletović</span><a href="#home">Back to top ↑</a></footer>
+  </div>
+ </body>
+</html>
