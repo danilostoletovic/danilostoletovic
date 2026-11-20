@@ -9,4 +9,4 @@ Currently building **SmartVehicle**, **AutoDark**, and **Ana**.
 
 [Website](https://danilostoletovic.com) · [Get in touch](mailto:contact@danilostoletovic.com)
 
-Site code: [MIT](LICENSE). Third-party assets retain their own licenses: [Šar Planina photo](public/images/sar-planina-license.txt) · [DM Sans](public/fonts/OFL.txt).
+Site code: [MIT](LICENSE)
