@@ -1,0 +1,12 @@
+---
+import type { Source } from '../data/public';
+import Icon from './Icon.astro';
+interface Props { links: readonly Source[]; title?: string }
+const { links, title } = Astro.props;
+---
+{links.length > 0 && <div class="source-links">
+  {title && <h2>{title}</h2>}
+  <ul class="plain-list">
+    {links.map(link => <li><a href={link.url}>{link.label}<Icon name="external" /></a></li>)}
+  </ul>
+</div>}

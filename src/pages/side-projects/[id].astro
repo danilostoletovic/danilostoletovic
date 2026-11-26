@@ -1,0 +1,48 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Site from '../../layouts/Site.astro';
+import PageHeading from '../../components/PageHeading.astro';
+import Sources from '../../components/Sources.astro';
+import { catalogue, casePath, publicationPath } from '../../lib/catalogue';
+import { author } from '../../lib/seo';
+
+export const getStaticPaths = (() => catalogue.projects.map(project => ({ params: { id: project.id }, props: { project } }))) satisfies GetStaticPaths;
+const { project } = Astro.props;
+const relatedCases = catalogue['case-studies'].filter(study => study.project === project.id);
+const relatedNews = catalogue.news.filter(item => item.project === project.id);
+const relatedAwards = catalogue.achievements.filter(item => item.project === project.id);
+const relatedWorks = catalogue.publications.filter(item => item.project === project.id);
+const entities = [{
+  '@type': project.category === 'Robotics' || project.category === 'Systems' ? 'CreativeWork' : 'SoftwareApplication',
+  '@id': project.url + '#project', name: project.title, url: project.url, description: project.summary,
+  creator: author, sameAs: project.links.filter(link => link.label === 'Project website').map(link => link.url),
+  subjectOf: relatedWorks.filter(work => work.status === 'Published').map(work => ({ '@id': work.url + '#article' })),
+}];
+---
+<Site title={project.title} description={project.summary} section={{ name: 'Independent projects', path: '/side-projects/' }} {entities}>
+  <PageHeading title={project.title} description={project.summary} />
+  <div class="split">
+    <div class="stack">
+      <section class="panel">
+        <h2>Project details</h2>
+        <dl class="definition">
+          <dt>Status</dt><dd>{project.status}</dd>
+          <dt>My contribution</dt><dd>{project.role}</dd>
+          <dt>Technologies</dt><dd>{project.stack.join(' · ')}</dd>
+        </dl>
+        <Sources links={project.links} />
+      </section>
+      {(relatedCases.length + relatedAwards.length + relatedNews.length + relatedWorks.length > 0) && <section class="panel">
+        <h2>Related work</h2>
+        <ul>
+          {relatedCases.map(study => <li><a href={casePath(study.id)}>{study.title}</a></li>)}
+          {relatedAwards.map(item => <li><a href={`/academia/#${item.id}`}>{item.title}</a></li>)}
+          {relatedWorks.map(item => <li><a href={publicationPath(item.id)}>{item.title}</a> · {item.venue}, {item.date}</li>)}
+          {relatedNews.map(item => <li><a href={`/news/#${item.id}`}>{item.publisher} · {item.title}</a></li>)}
+        </ul>
+      </section>}
+      <Sources links={project.sources} title="Sources" />
+    </div>
+    {project.image && <figure class="project-shot"><img src={project.image.file} alt={project.image.alt} width={project.image.width} height={project.image.height} decoding="async" /></figure>}
+  </div>
+</Site>

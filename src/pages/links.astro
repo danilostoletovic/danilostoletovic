@@ -1,0 +1,28 @@
+---
+import Site from '../layouts/Site.astro';
+import PageHeading from '../components/PageHeading.astro';
+import Icon from '../components/Icon.astro';
+import { profiles, type ProfileLink } from '../data/public';
+const title = 'Public profiles';
+const description = 'My professional, open-source, research, and social profiles.';
+const personal = profiles.filter(profile => profile.identity === 'personal');
+const organizations = profiles.filter(profile => profile.identity === 'project');
+const groups: { title: string; items: ProfileLink[] }[] = [...new Set(personal.map(profile => profile.category))]
+  .map(category => ({ title: category, items: personal.filter(profile => profile.category === category) }));
+if (organizations.length) groups.push({ title: 'Project organizations', items: organizations });
+---
+<Site {title} {description}>
+  <PageHeading {title} {description} />
+  <div class="link-directory">
+    {groups.map(group => <section class="panel">
+      <h2>{group.title}</h2>
+      <ul class="plain-list entries">
+        {group.items.map(profile => <li class="entry"><a class="profile-link" href={profile.url}>
+          <Icon name={profile.icon} />
+          <span><strong>{profile.title}</strong><small>{profile.username}</small><small>{profile.summary}</small></span>
+          <Icon name="external" />
+        </a></li>)}
+      </ul>
+    </section>)}
+  </div>
+</Site>

@@ -1,7 +1,8 @@
 import { defineConfig } from 'astro/config';
-import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import { site } from './src/data/public.ts';
 
-const site = 'https://danilostoletovic.com';
 const escapeXml = value => value.replace(/[<>&"']/g, character => ({
   '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;'
 }[character]));
@@ -9,20 +10,29 @@ const escapeXml = value => value.replace(/[<>&"']/g, character => ({
 export default defineConfig({
   output: 'static',
   site,
+  trailingSlash: 'always',
+  build: { inlineStylesheets: 'always' },
+  vite: { build: { assetsInlineLimit: 0 } },
   integrations: [{
-    name: 'build-sitemap',
+    name: 'static-site-metadata',
     hooks: {
       'astro:build:done': async ({ pages, dir }) => {
         const urls = [...new Set(pages
-          .filter(({ pathname }) => !/^\/?(?:404|500)(?:\.html|\/)?$/.test(pathname))
-          .map(({ pathname }) => new URL(pathname, `${site}/`).href))].sort();
+          .filter(({ pathname }) => !pathname.includes('.') && !/^\/?(?:404|500)\/?$/.test(pathname))
+          .map(({ pathname }) => new URL(pathname.replace(/\/?$/, '/'), `${site}/`).href))].sort();
         const sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n'
           + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
           + urls.map(url => `  <url><loc>${escapeXml(url)}</loc></url>`).join('\n')
           + '\n</urlset>\n';
+        const headersPath = new URL('_headers', dir);
+        const [headers, themeScript] = await Promise.all([
+          readFile(headersPath, 'utf8'),
+          readFile(new URL('./src/scripts/theme.js', import.meta.url), 'utf8'),
+        ]);
+        const hash = createHash('sha256').update(themeScript.replace(/\r\n?/g, '\n')).digest('base64');
         await Promise.all([
           writeFile(new URL('sitemap.xml', dir), sitemap),
-          writeFile(new URL('robots.txt', dir), `User-agent: *\nAllow: /\n\nSitemap: ${site}/sitemap.xml\n`)
+          writeFile(headersPath, headers.replace('__THEME_SCRIPT_HASH__', `'sha256-${hash}'`)),
         ]);
       }
     }

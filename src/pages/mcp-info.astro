@@ -1,0 +1,40 @@
+---
+import Site from '../layouts/Site.astro';
+import PageHeading from '../components/PageHeading.astro';
+import { mcpUrl } from '../lib/catalogue';
+import { resources, resourceUri, toolDescriptions } from '../lib/mcp-surface';
+const title = 'Model Context Protocol';
+const description = 'Access Danilo Stoletović’s verified public professional catalogue from an MCP client.';
+const example = JSON.stringify({ mcpServers: { 'danilo-profile': { type: 'http', url: mcpUrl } } }, null, 2);
+---
+<Site {title} {description}>
+  <PageHeading {title} {description} />
+  <div class="split">
+    <div class="stack">
+      <section class="panel">
+        <h2>Connect a client</h2>
+        <p>Add <code>{mcpUrl}</code> as a remote Streamable HTTP server. The endpoint is public and read-only.</p>
+        <pre class="code-block"><code>{example}</code></pre>
+        <p>Client configuration varies. Choose the HTTP transport, then try <code>get_profile</code> or call <code>search_content</code> with <code>{'{"query":"SmartVehicle","limit":5}'}</code>.</p>
+      </section>
+      <section class="panel">
+        <h2>Tools</h2>
+        <dl class="definition">
+          {Object.entries(toolDescriptions).map(([name, description]) => <><dt><code>{name}</code></dt><dd>{description}</dd></>)}
+        </dl>
+      </section>
+    </div>
+    <aside class="stack" aria-label="Resources and access">
+      <section class="panel">
+        <h2>JSON resources</h2>
+        <ul class="plain-list">{resources.map(resource => <li><code>{resourceUri(resource.id)}</code></li>)}</ul>
+      </section>
+      <section class="panel">
+        <h2>Access and limits</h2>
+        <p>The server supports stateless Streamable HTTP with current and compatible 2025 clients. Requests are capped at 16 KiB. Search and lists return up to 30 items. Send only public queries.</p>
+        <p><a href="/mcp-data.json">Download the public JSON catalogue</a></p>
+        <p><a href="/llms.txt">Browse text and machine-readable formats</a></p>
+      </section>
+    </aside>
+  </div>
+</Site>

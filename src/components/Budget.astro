@@ -1,0 +1,47 @@
+---
+import { budgetPlanner } from '../data/budget';
+import { person } from '../data/public';
+const { minimum, maximum, step, scopes } = budgetPlanner;
+---
+<section class="panel" id="budget" aria-labelledby="budget-title">
+  <h2 id="budget-title">Budget estimator</h2>
+  <p>Set the budget you have in mind and see an example scope. Final scope and pricing are agreed directly.</p>
+  <form class="form" id="budget-form" hidden>
+    <label for="project-type">What are you planning?</label>
+    <select id="project-type">{scopes.map((scope, index) => <option value={index}>{scope.name}</option>)}</select>
+    <label for="project-budget">Your budget in euros</label>
+    <input type="number" min={minimum} max={maximum} step={step} value={minimum} id="project-budget" required />
+  </form>
+  <output class="output" id="budget-example" for="project-type project-budget" hidden></output>
+  <a class="button secondary" id="budget-inquiry" href={`mailto:${person.email}?subject=Project%20inquiry`}>Email your project brief</a>
+  <script>
+    import { budgetPlanner } from '../data/budget';
+    const form = document.querySelector<HTMLFormElement>('#budget-form');
+    const type = document.querySelector<HTMLSelectElement>('#project-type');
+    const amount = document.querySelector<HTMLInputElement>('#project-budget');
+    const output = document.querySelector<HTMLOutputElement>('#budget-example');
+    const inquiry = document.querySelector<HTMLAnchorElement>('#budget-inquiry');
+    if (form && type && amount && output && inquiry) {
+      const address = inquiry.href.split('?')[0];
+      const euros = new Intl.NumberFormat('en', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+      const update = () => {
+        const budget = amount.valueAsNumber;
+        const project = budgetPlanner.scopes[Number(type.value)];
+        if (!project || !amount.validity.valid) {
+          output.textContent = `Enter a budget from ${euros.format(budgetPlanner.minimum)} to ${euros.format(budgetPlanner.maximum)} in ${euros.format(budgetPlanner.step)} steps.`;
+          inquiry.href = `${address}?subject=Project%20inquiry`;
+          return;
+        }
+        const example = project.examples.reduce((last, example) => example.budget <= budget ? example : last);
+        const display = euros.format(budget) + (budget === budgetPlanner.maximum ? '+' : '');
+        output.textContent = `${display} planning budget · ${example.scope}`;
+        const body = `Project: ${project.name}\nPlanning budget: ${display}\n\nWhat I’d like to build:\n`;
+        inquiry.href = `${address}?subject=Project%20inquiry&body=${encodeURIComponent(body)}`;
+      };
+      form.addEventListener('input', update);
+      form.addEventListener('submit', event => event.preventDefault());
+      update();
+      form.hidden = output.hidden = false;
+    }
+  </script>
+</section>

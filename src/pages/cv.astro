@@ -1,0 +1,30 @@
+---
+import Site from '../layouts/Site.astro';
+import Icon from '../components/Icon.astro';
+import { cv, telephoneHref, telephoneLabel } from '../lib/catalogue';
+---
+<Site title="Curriculum vitae" description={cv.summary}>
+  <article class="cv">
+    <header class="page-heading">
+      <img class="cv-mark" src="/brand/apple-touch-icon.png" alt="" width="76" height="76" />
+      <h1>{cv.name}</h1>
+      <p>{cv.title} · {cv.location}</p>
+      <div class="cv-contact">
+        <a href={`mailto:${cv.email}`}>{cv.email}</a>
+        <a href={telephoneHref}>{telephoneLabel}</a>
+        {cv.links.map(profile => <a href={profile.url}>{profile.title}</a>)}
+      </div>
+      <p>{cv.summary}</p>
+      <a class="button primary print-hide" href="/cv.pdf" download="Danilo-Stoletovic-CV.pdf"><Icon name="download" /> Download CV (PDF)</a>
+    </header>
+    {cv.sections.filter(section => section.items.length).map(section => <section class="cv-section">
+      <h2>{section.title}</h2>
+      <ul class="plain-list">
+        {section.items.map(item => <li>
+          <strong>{'url' in item && item.url ? <a href={item.url}>{item.title}</a> : item.title}</strong>
+          <p>{item.summary}</p>
+        </li>)}
+      </ul>
+    </section>)}
+  </article>
+</Site>

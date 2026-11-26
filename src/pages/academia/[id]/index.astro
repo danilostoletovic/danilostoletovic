@@ -1,0 +1,75 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Site from '../../../layouts/Site.astro';
+import PageHeading from '../../../components/PageHeading.astro';
+import Sources from '../../../components/Sources.astro';
+import { catalogue, projectPath, publicationStatus } from '../../../lib/catalogue';
+import { publicationSchema } from '../../../lib/seo';
+import { citationLinks } from '../../../lib/citations';
+
+export const getStaticPaths = (() => catalogue.publications.map(work => ({
+  params: { id: work.id }, props: { work },
+}))) satisfies GetStaticPaths;
+const { work } = Astro.props;
+const project = catalogue.projects.find(item => item.id === work.project);
+const { proceedings } = work;
+const published = work.status === 'Published';
+const entities = published ? [publicationSchema(work)] : [];
+const description = `${work.authors.join(', ')}. ${work.venue}, ${work.date}. ${publicationStatus(work)}.`;
+---
+<Site title={work.title} {description} section={{ name: 'Academic work', path: '/academia/' }} {entities}>
+  <Fragment slot="head">{published && <>
+    <meta name="citation_title" content={work.title} />
+    {work.authors.map(name => <meta name="citation_author" content={name} />)}
+    <meta name="citation_publication_date" content={work.date.replaceAll('-', '/')} />
+    {proceedings && <>
+      <meta name="citation_conference_title" content={work.venue} />
+      <meta name="citation_isbn" content={proceedings.isbn} />
+      <meta name="citation_firstpage" content={String(proceedings.firstPage)} />
+    </>}
+    {work.doi && <meta name="citation_doi" content={work.doi} />}
+  </>}</Fragment>
+  <PageHeading title={work.title} description={work.summary} />
+  <div class="split">
+    <div class="stack">
+      <section class="panel">
+        <h2>Publication details</h2>
+        <dl class="definition">
+          <dt>Authors</dt>
+          <dd>{work.authorDetails.map((item, index) => <>
+            {index > 0 && ', '}
+            {work.authors[index]}{item.orcidUrl && <> (<a href={item.orcidUrl}>ORCID {item.orcid}</a>)</>}
+          </>)}</dd>
+          <dt>Status</dt><dd>{publicationStatus(work)}</dd>
+          {work.publicationType && <><dt>Publication type</dt><dd>{work.publicationType}</dd></>}
+          <dt>{proceedings ? 'Conference' : 'Venue'}</dt><dd>{work.venue}</dd>
+          <dt>Publication year</dt><dd>{work.date.slice(0, 4)}</dd>
+          {proceedings && <>
+            <dt>Location</dt><dd>{proceedings.location}</dd>
+            <dt>Starting page</dt><dd>{proceedings.firstPage}</dd>
+            <dt>Proceedings ISBN</dt><dd>{proceedings.isbn}</dd>
+          </>}
+          {work.doiUrl && <><dt>DOI</dt><dd><a href={work.doiUrl}>{work.doi}</a></dd></>}
+        </dl>
+        {work.doiRegistration === 'pending' && <p>The assigned DOI may take time to resolve.</p>}
+      </section>
+      {proceedings && <section class="panel">
+        <h2>Conference organizers</h2>
+        <ul>{proceedings.organizers.map(organizer => <li>{organizer}</li>)}</ul>
+      </section>}
+    </div>
+    <aside class="stack" aria-label="Publication resources">
+      {published && <section class="panel">
+        <h2>Download citation</h2>
+        <ul class="plain-list">
+          {citationLinks(work).map(link => <li><a href={link.path} download={`${work.id}${link.file.slice('citation'.length)}`}>{link.label}</a></li>)}
+        </ul>
+      </section>}
+      {project && <section class="panel">
+        <h2>Related project</h2>
+        <a href={projectPath(project.id)}>{project.title}</a>
+      </section>}
+      <Sources links={work.sources} title="Sources" />
+    </aside>
+  </div>
+</Site>

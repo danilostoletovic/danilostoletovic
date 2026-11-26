@@ -1,0 +1,20 @@
+---
+import Site from '../layouts/Site.astro';
+import PageHeading from '../components/PageHeading.astro';
+import Icon from '../components/Icon.astro';
+import { news, projects } from '../data/public';
+import { projectPath } from '../lib/catalogue';
+const title = 'News & recognition';
+const description = 'Coverage of my work, public demonstrations, and official competition results.';
+---
+<Site {title} {description}>
+  <PageHeading {title} {description}><a class="button secondary" href="/rss.xml">RSS feed</a></PageHeading>
+  <ul class="plain-list entries">
+    {news.map(item => <li class="entry" id={item.id}>
+      <p class="meta"><time datetime={item.date}>{item.date}</time> · {item.publisher} · {item.mention === 'Direct' ? 'Names Danilo' : 'Project coverage'}</p>
+      <h2><a href={item.url}>{item.title} <Icon name="external" /></a></h2>
+      <p>{item.summary}</p>
+      {item.project && <div class="entry-links"><a href={projectPath(item.project)}>{projects.find(project => project.id === item.project)?.title}</a></div>}
+    </li>)}
+  </ul>
+</Site>

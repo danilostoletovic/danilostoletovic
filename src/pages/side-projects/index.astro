@@ -1,0 +1,28 @@
+---
+import Site from '../../layouts/Site.astro';
+import PageHeading from '../../components/PageHeading.astro';
+import Icon from '../../components/Icon.astro';
+import { catalogue } from '../../lib/catalogue';
+const title = 'Independent projects';
+const description = 'Released applications, open-source tools, and technical experiments by Danilo Stoletović.';
+const categories = [...new Set(catalogue.projects.map(project => project.category))];
+---
+<Site {title} {description}>
+  <PageHeading {title} {description}>
+    <nav class="profile-shortcuts" aria-label="Project categories">
+      {categories.map(category => <a href={`#${category.toLowerCase().replace(' & ', '-')}`}>{category}</a>)}
+    </nav>
+  </PageHeading>
+  <div class="stack">
+    {categories.map(category => <section id={category.toLowerCase().replace(' & ', '-')} aria-label={category}>
+      <h2 class="section-heading">{category}</h2>
+      <ul class="plain-list entries">
+        {catalogue.projects.filter(project => project.category === category).map(project => <li class="entry">
+          <p class="meta">{project.status} · {project.stack.slice(0, 3).join(' / ')}</p>
+          <h3><a href={new URL(project.url).pathname}>{project.title} <Icon name="arrow" /></a></h3>
+          <p>{project.summary}</p>
+        </li>)}
+      </ul>
+    </section>)}
+  </div>
+</Site>

@@ -1,0 +1,52 @@
+---
+import Site from '../../layouts/Site.astro';
+import PageHeading from '../../components/PageHeading.astro';
+import Budget from '../../components/Budget.astro';
+import Ana from '../../components/Ana.astro';
+import Icon from '../../components/Icon.astro';
+import { cases, person, services, site } from '../../data/public';
+import { casePath, collaboration, telephoneHref, telephoneLabel } from '../../lib/catalogue';
+import { author } from '../../lib/seo';
+const title = 'Commercial work';
+const description = 'Software development, websites, AI integrations, and technical consulting for independent clients and teams.';
+const studies = cases.filter(study => study.relevantToClients);
+const entities = services.map(service => ({
+  '@type': 'Service', '@id': `${site}/commerce/${service.id}/#service`, url: `${site}/commerce/${service.id}/`, name: service.title,
+  description: service.summary, provider: author,
+}));
+---
+<Site {title} {description} {entities}>
+  <PageHeading {title} {description}>
+    <a class="button primary" href={`mailto:${person.email}?subject=Project%20inquiry`}><Icon name="mail" /> Discuss a project</a>
+    <a class="button secondary" href={telephoneHref}><Icon name="phone" />{telephoneLabel}</a>
+  </PageHeading>
+  <div class="split">
+    <div class="stack">
+      <section>
+        <h2 class="section-heading">Services</h2>
+        <ul class="entries plain-list">
+          {services.map(service => <li class="entry">
+            <h3><a href={`/commerce/${service.id}/`}>{service.title}</a></h3>
+            <p>{service.summary}</p>
+          </li>)}
+        </ul>
+      </section>
+      <section class="panel">
+        <h2>How we work together</h2>
+        <ol class="plain-list definition">
+          {collaboration.map(item => <li><strong>{item.title}</strong><p>{item.summary}</p></li>)}
+        </ol>
+      </section>
+      <section>
+        <h2 class="section-heading">Relevant case studies</h2>
+        <ul class="entries plain-list">
+          {studies.map(study => <li class="entry"><h3><a href={casePath(study.id)}>{study.title}</a></h3><p>{study.summary}</p></li>)}
+        </ul>
+      </section>
+    </div>
+    <aside class="stack" aria-label="Project planning and assistance">
+      <Budget />
+      <Ana />
+    </aside>
+  </div>
+</Site>

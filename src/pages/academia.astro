@@ -1,0 +1,63 @@
+---
+import Site from '../layouts/Site.astro';
+import PageHeading from '../components/PageHeading.astro';
+import Sources from '../components/Sources.astro';
+import { achievements, education, profiles, projects } from '../data/public';
+import { catalogue, projectPath, publicationPath, publicationStatus } from '../lib/catalogue';
+import { publicationSchema } from '../lib/seo';
+const title = 'Academic work';
+const description = 'Scientific publications, applied computer vision, and competition results.';
+const orcid = profiles.find(link => link.id === 'orcid');
+const robotics = projects.filter(project => project.category === 'Robotics');
+const { publications } = catalogue;
+const entities = publications.filter(work => work.status === 'Published').map(publicationSchema);
+---
+<Site {title} {description} {entities}>
+  <PageHeading {title} {description} />
+  <div class="split">
+    <div class="stack">
+      {publications.length > 0 && <section>
+        <h2 class="section-heading">Publications</h2>
+        <div class="entries">
+          {publications.map(work => <article class="entry" id={work.id}>
+            <p class="meta">{publicationStatus(work)} · {work.date}</p>
+            <h3><a href={publicationPath(work.id)}>{work.title}</a></h3>
+            <p>{work.authors.join(', ')} · {work.venue}</p>
+            {work.doiUrl && <a href={work.doiUrl}>DOI {work.doi}</a>}
+          </article>)}
+        </div>
+      </section>}
+      <section>
+        <h2 class="section-heading">Research projects</h2>
+        <div class="entries">
+          {robotics.map(project => <article class="entry">
+            <p class="meta">{project.status}</p>
+            <h3><a href={projectPath(project.id)}>{project.title}</a></h3>
+            <p>{project.summary}</p>
+          </article>)}
+        </div>
+      </section>
+      <section>
+        <h2 class="section-heading">Competitions & awards</h2>
+        <div class="entries">
+          {achievements.map(item => <article id={item.id} class="entry">
+            <p class="meta"><time datetime={item.date}>{item.date}</time> · {item.organizer}</p>
+            <h3>{item.title}</h3>
+            <p>{item.summary}</p>
+            <Sources links={item.sources} />
+          </article>)}
+        </div>
+      </section>
+    </div>
+    <aside class="stack" aria-label="Research profile">
+      {orcid && <section class="panel">
+        <h2>ORCID</h2>
+        <a href={orcid.url}>{orcid.username}</a>
+      </section>}
+      <section class="panel">
+        <h2>Education</h2>
+        {education.map(item => <><h3>{item.title}</h3><p>{item.summary}</p></>)}
+      </section>
+    </aside>
+  </div>
+</Site>

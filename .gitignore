@@ -3,3 +3,7 @@ dist/
 .astro/
 .research/
 test-results/
+.wrangler/
+.dev.vars*
+.env*
+public/brand/

@@ -1,0 +1,90 @@
+---
+import Icon from '../components/Icon.astro';
+import { person, site } from '../data/public';
+import { directories, telephoneHref, telephoneLabel } from '../lib/catalogue';
+import { structuredData, type Schema } from '../lib/seo';
+import themeScript from '../scripts/theme.js?raw';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+  section?: { name: string; path: string };
+  entities?: Schema[];
+  noindex?: boolean;
+}
+const { title, description, section, entities, noindex = false } = Astro.props;
+const path = Astro.url.pathname;
+const home = path === '/';
+const canonical = site + path;
+const pageTitle = home ? `${person.name} | ${person.title}` : `${title} | ${person.name}`;
+const jsonLd = JSON.stringify(structuredData(title, description, path, section, entities)).replaceAll('<', '\\u003c');
+const googleVerification = import.meta.env.GOOGLE_SITE_VERIFICATION;
+const bingVerification = import.meta.env.BING_SITE_VERIFICATION;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content={description} />
+    <title>{pageTitle}</title>
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonical} />}
+    {googleVerification && <meta name="google-site-verification" content={googleVerification} />}
+    {bingVerification && <meta name="msvalidate.01" content={bingVerification} />}
+    <link rel="icon" type="image/png" href="/brand/favicon.png" sizes="64x64" />
+    <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="alternate" type="application/rss+xml" title="News and recognition" href="/rss.xml" />
+    <slot name="head" />
+    {!noindex && <>
+      <meta property="og:type" content={home ? 'profile' : 'website'} />
+      <meta property="og:site_name" content={person.name} />
+      <meta property="og:title" content={pageTitle} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={canonical} />
+      <meta property="og:image" content={site + '/brand/social.png'} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="The red and black DS monogram" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <script type="application/ld+json" set:html={jsonLd} />
+    </>}
+    <script is:inline set:html={themeScript.replace(/\r\n?/g, '\n')} />
+    <script is:inline defer src="https://cloud.umami.is/script.js" data-website-id="72126cdf-b4c4-49ba-8661-a3eca4d7d688"></script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="topbar">
+      <div class="wrap topbar-inner">
+        <a class="brand" href="/" aria-label={person.name + ', home'}>
+          <img src="/brand/favicon.png" alt="" width="32" height="32" />
+          <span>{person.name}</span>
+        </a>
+        <nav aria-label="Main navigation" class="primary-nav">
+          {directories.map(item =>
+            <a href={item.href} aria-current={path === item.href ? 'page' : path.startsWith(item.href) ? 'true' : undefined}>{item.nav}</a>
+          )}
+          <a href="/links/" aria-current={path === '/links/' ? 'page' : undefined}>Links</a>
+        </nav>
+        <button type="button" class="theme-toggle" id="theme-switch" aria-label="Color theme" title="Color theme" hidden><Icon name="sun" /></button>
+      </div>
+    </header>
+    <main id="main" class:list={['wrap', home ? 'home' : 'page']} tabindex="-1">
+      {section && <nav class="breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true"> / </span><a href={section.path}>{section.name}</a><span aria-hidden="true"> / </span><span aria-current="page">{title}</span></nav>}
+      <slot />
+    </main>
+    <footer class="footer">
+      <div class="wrap footer-inner">
+        <span>{person.name} <span class="footer-separator" aria-hidden="true">/</span> {person.location}</span>
+        <nav aria-label="Website resources">
+          <a href={`mailto:${person.email}`}>Email</a>
+          <a href={telephoneHref}>{telephoneLabel}</a>
+          <a href="/mcp-info/">MCP</a>
+          <a href="/rss.xml">RSS</a>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>

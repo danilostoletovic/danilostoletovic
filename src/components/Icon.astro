@@ -1,6 +1,15 @@
 ---
+interface Props { name: string; class?: string }
 const { name, class: className = '' } = Astro.props;
 const paths: Record<string,string> = {
+ briefcase: 'M3 7h18v14H3zM8 7V4h8v3M3 12l9 3 9-3M10 14h4',
+ case: 'M3 4h7l2 3h9v13H3zM7 13h10m-10 3h7',
+ news: 'M4 4h16v16H4zM8 8h8m-8 4h8m-8 4h5',
+ file: 'M6 3h8l4 4v14H6zM14 3v5h4m-9 4h6m-6 4h6',
+ research: 'M9 3h6m-5 0v7l-5 8a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-8V3M8 15h8',
+ video: 'M3 5h18v14H3zM10 9l5 3-5 3z',
+ sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1',
+ download: 'M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5',
  store: 'M4 7h16v15H4z M8 7V5a4 4 0 0 1 8 0v2 M8 11h3v3H8z M13 11h3v3h-3z M8 16h3v3H8z M13 16h3v3h-3z',
  arrow: 'M5 12h14m-6-6 6 6-6 6', down: 'M12 4v16m-6-6 6 6 6-6', external: 'M7 17 17 7M7 7h10v10',
  mail: 'M3 5h18v14H3z M3 6l9 7 9-7', code: 'm8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18',

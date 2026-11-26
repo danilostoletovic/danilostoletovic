@@ -4,14 +4,35 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-brand.mjs",
     "dev": "astro dev --host 127.0.0.1",
+    "prebuild": "node scripts/build-brand.mjs",
     "build": "astro build",
-    "preview": "astro preview --host 127.0.0.1"
+    "check": "astro check",
+    "preview": "astro preview --host 127.0.0.1",
+    "preview:worker": "wrangler dev --local --ip 127.0.0.1",
+    "check:worker": "wrangler deploy --dry-run --outdir .research/worker",
+    "test": "node --test tests/*.test.mjs",
+    "verify:browser": "node scripts/verify.mjs",
+    "audit": "node scripts/audit.mjs",
+    "check:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
-    "astro": "^7.4.4"
+    "@modelcontextprotocol/server": "2.4.0",
+    "astro": "^7.4.4",
+    "pdfkit": "0.21.0",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.64.1"
+    "@astrojs/check": "0.9.12",
+    "@axe-core/playwright": "4.14.1",
+    "@cloudflare/workers-types": "5.20261125.1",
+    "@modelcontextprotocol/client": "2.4.0",
+    "@playwright/test": "^1.64.1",
+    "@types/pdfkit": "0.17.7",
+    "lighthouse": "13.6.0",
+    "typescript": "6.0.3",
+    "wrangler": "4.168.0"
   }
 }

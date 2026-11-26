@@ -1,0 +1,18 @@
+---
+import Site from '../../layouts/Site.astro';
+import PageHeading from '../../components/PageHeading.astro';
+import Icon from '../../components/Icon.astro';
+import { catalogue, casePath } from '../../lib/catalogue';
+const title = 'Case studies';
+const description = 'The problems, constraints, and engineering decisions behind selected projects.';
+---
+<Site {title} {description}>
+  <PageHeading {title} {description} />
+  <ul class="plain-list entries">
+    {catalogue['case-studies'].map(study => <li class="entry">
+      <p class="meta">{catalogue.projects.find(project => project.id === study.project)?.title}</p>
+      <h2><a href={casePath(study.id)}>{study.title} <Icon name="arrow" /></a></h2>
+      <p>{study.summary}</p>
+    </li>)}
+  </ul>
+</Site>

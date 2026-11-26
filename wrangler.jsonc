@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "danilostoletovic",
+  "main": "workers/index.ts",
+  "compatibility_date": "2026-11-26",
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  "workers_dev": false,
+  "routes": [{ "pattern": "danilostoletovic.com", "custom_domain": true }],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "force-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/mcp", "/mcp/"]
+  },
+  "ratelimits": [
+    { "name": "MCP_RATE_LIMITER", "namespace_id": "49126", "simple": { "limit": 60, "period": 60 } }
+  ],
+  "observability": {
+    "enabled": true,
+    "logs": { "enabled": true, "head_sampling_rate": 0.05 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.05 }
+  }
+}

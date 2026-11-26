@@ -1,0 +1,29 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Site from '../../layouts/Site.astro';
+import PageHeading from '../../components/PageHeading.astro';
+import { person, services, site } from '../../data/public';
+import { author } from '../../lib/seo';
+export const getStaticPaths = (() => services.map(service => ({ params: { id: service.id }, props: { service } }))) satisfies GetStaticPaths;
+const { service } = Astro.props;
+const url = `${site}/commerce/${service.id}/`;
+const entities = [{ '@type': 'Service', '@id': url + '#service', name: service.title, url, description: service.summary, provider: author }];
+---
+<Site title={service.title} description={service.summary} section={{ name: 'Commercial work', path: '/commerce/' }} {entities}>
+  <PageHeading title={service.title} description={service.summary} />
+  <div class="split">
+    <section class="panel">
+      <h2>What the work can include</h2>
+      <ul>{service.deliverables.map(item => <li>{item}</li>)}</ul>
+      <a class="button primary" href={`mailto:${person.email}?subject=${encodeURIComponent(service.title)}`}>Discuss this service</a>
+    </section>
+    <aside class="panel">
+      <h2>Project planning</h2>
+      <ul class="plain-list">
+        <li><a href="/commerce/#budget">Explore budget and scope</a></li>
+        <li><a href="/commerce/#ana">Ask Ana a question</a></li>
+        <li><a href="/case/">Read the case studies</a></li>
+      </ul>
+    </aside>
+  </div>
+</Site>
