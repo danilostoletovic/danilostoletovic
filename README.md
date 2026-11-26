@@ -21,7 +21,7 @@ First author of *SmartVehicle: Building and Controlling a Camera-Based Robotic V
 ### Contact
 
 - Website: [danilostoletovic.com](https://danilostoletovic.com)
-- Email: [danilo@danilostoletovic.com](mailto:danilo@danilostoletovic.com)
+- Email: [contact@danilostoletovic.com](mailto:contact@danilostoletovic.com)
 - Phone: +381 67 773 2060
 
 Open to commercial collaborations, technical challenges, and new opportunities.
