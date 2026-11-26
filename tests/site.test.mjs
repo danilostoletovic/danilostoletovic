@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
+import sharp from 'sharp';
+import { portraitAssets } from '../src/data/portrait.ts';
 
 const origin = process.env.VERIFY_URL || 'http://127.0.0.1:8787';
 const get = (path, options) => fetch(new URL(path, origin), options);
@@ -48,6 +50,44 @@ test('professional telephone is consistent across public formats', async () => {
   assert.ok(ana.profile.includes(profile.telephone));
   const pdf = Buffer.from(await (await get('/cv.pdf')).arrayBuffer()).toString('latin1');
   assert.ok(pdf.includes(`tel:${profile.telephone}`));
+});
+
+test('the professional portrait is consistent across identity formats and publicly served', async () => {
+  const profile = await (await get('/profile.json')).json();
+  const { image } = profile;
+  assert.equal(image.subject, profile.name);
+  assert.equal(image.url, profile.portrait);
+  assert.equal(image.mimeType, 'image/jpeg');
+  assert.deepEqual(image.alternatives.map(asset => asset.mimeType), ['image/avif', 'image/webp']);
+  assert.deepEqual((await (await get('/mcp-data.json')).json()).profile.image, image);
+  for (const path of ['/', '/cv/', '/links/']) {
+    const html = await (await get(path)).text();
+    assert.ok(html.includes(`property="og:image" content="${image.url}"`), path);
+    assert.ok(html.includes(`name="twitter:image" content="${image.url}"`), path);
+  }
+  for (const path of ['/profile.md', '/markdown/cv.md', '/markdown/links.md', '/llms.txt', '/llms-full.txt']) {
+    assert.ok((await (await get(path)).text()).includes(image.url), path);
+  }
+  assert.ok((await (await get('/ana-knowledge.json')).json()).profile.includes(image.url));
+  const pdf = Buffer.from(await (await get('/cv.pdf')).arrayBuffer()).toString('latin1');
+  assert.ok(pdf.includes(image.url));
+
+  for (const asset of portraitAssets) {
+    const path = new URL(asset.url).pathname;
+    const response = await get(path, { redirect: 'manual' });
+    assert.equal(response.status, 200, path);
+    assert.equal(response.headers.get('content-type'), asset.mimeType, path);
+    assert.match(response.headers.get('cache-control'), /public.*max-age=86400/);
+    assert.equal(response.headers.get('x-robots-tag'), null, path);
+    const { width, height, format, compression, exif, icc, iptc, xmp } = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+    assert.deepEqual([width, height], [asset.width, asset.height], path);
+    assert.equal(`image/${format === 'heif' && compression === 'av1' ? 'avif' : format}`, asset.mimeType, path);
+    assert.ok(!exif && !icc && !iptc && !xmp, path);
+  }
+  const oldPortrait = await get('/images/danilo.avif', { redirect: 'manual' });
+  assert.equal(oldPortrait.status, 301);
+  assert.equal(new URL(oldPortrait.headers.get('location'), origin).pathname, new URL(image.alternatives[0].url).pathname);
+  assert.equal((await get('/images/danilo-stoletovic.png')).status, 404);
 });
 
 test('the SmartVehicle paper is citable across the catalogue, website, and downloads', async () => {

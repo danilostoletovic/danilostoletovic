@@ -28,8 +28,10 @@ export async function makeCvPdf() {
   pdf.text(telephoneLabel, { link: telephoneHref, underline: true });
   cv.links.forEach((profile, index) => {
     if (index) pdf.text('   /   ', { continued: true, link: null, underline: false });
-    pdf.text(profile.title, { link: profile.url, underline: true, continued: index < cv.links.length - 1 });
+    pdf.text(profile.title, { link: profile.url, underline: true, continued: true });
   });
+  if (cv.links.length) pdf.text('   /   ', { continued: true, link: null, underline: false });
+  pdf.text(cv.image.purpose, { link: cv.image.url, underline: true });
   pdf.moveDown(.55).fillColor('#33302c').text(cv.summary, { lineGap: 1.5 });
   for (const section of cv.sections) {
     if (!section.items.length) continue;

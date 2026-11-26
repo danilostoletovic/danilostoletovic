@@ -2,13 +2,26 @@ import { achievements, orcidUrl, person, profiles, site, skills } from '../data/
 import { personId, projectPath, publicationStatus, type PublicWork } from './catalogue';
 
 export type Schema = Record<string, unknown>;
+const portrait = person.image;
+const portraitId = `${site}/#portrait`;
+const imageObject = {
+  '@type': 'ImageObject',
+  '@id': portraitId,
+  contentUrl: portrait.url,
+  encodingFormat: portrait.mimeType,
+  width: { '@type': 'QuantitativeValue', value: portrait.width, unitText: 'px' },
+  height: { '@type': 'QuantitativeValue', value: portrait.height, unitText: 'px' },
+  description: portrait.alt,
+  caption: portrait.caption,
+  about: { '@id': personId },
+};
 const identity = {
   '@type': 'Person',
   '@id': personId,
   name: person.name,
   alternateName: person.alternateNames,
   url: site + '/',
-  image: site + person.portrait,
+  image: { '@id': portraitId },
   email: person.email,
   telephone: person.telephone,
   identifier: { '@type': 'PropertyValue', propertyID: 'ORCID', value: person.orcid, url: orcidUrl(person.orcid) },
@@ -56,11 +69,13 @@ export function structuredData(title: string, description: string, path: string,
     '@context': 'https://schema.org',
     '@graph': [
       identity,
+      imageObject,
       { '@type': 'WebSite', '@id': `${site}/#website`, name: person.name, url: site + '/', publisher: author, inLanguage: 'en' },
       {
         '@type': path === '/' || path === '/cv/' ? 'ProfilePage' : 'WebPage',
         '@id': canonical + '#page', url: canonical, name: title, description, inLanguage: 'en',
         isPartOf: { '@id': `${site}/#website` },
+        ...(path === '/' ? { primaryImageOfPage: { '@id': portraitId } } : {}),
         ...(path === '/' || path === '/cv/' ? { mainEntity: author } : { about: author }),
         ...(breadcrumbs.length ? { breadcrumb: { '@id': canonical + '#breadcrumbs' } } : {}),
       },

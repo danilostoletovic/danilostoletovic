@@ -1,10 +1,11 @@
 import {
   achievements, cases, collaboration, education, experience, news, person,
   profiles, projects, publications, services, site, skills, orcidUrl, type Entry, type Publication,
-} from '../data/public';
+} from '../data/public.ts';
+import { mcpService } from '../config/mcp.ts';
 
 export const personId = `${site}/#person`;
-export const mcpUrl = `${site}/mcp`;
+export const mcpUrl = mcpService.url;
 export const contact = { email: person.email, telephone: person.telephone, url: `${site}/#contact` };
 export const telephoneHref = `tel:${person.telephone}`;
 export const telephoneLabel = person.telephone.replace(/^(\+381)(\d{2})(\d{3})(\d{4})$/, '$1 $2 $3 $4');

@@ -1,18 +1,21 @@
 ---
 import { person, site } from '../data/public';
+import { formAttributes, webmcpForms } from '../config/webmcp';
+const tool = webmcpForms.ana;
 ---
 <section class="panel" id="ana" aria-labelledby="ana-title">
   <h2 id="ana-title">Ask Ana</h2>
   <p>Ana is my AI assistant for questions about services and public projects. Please keep messages free of private or confidential details.</p>
   <ol class="plain-list chat-log" id="ana-log" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
-  <form class="form" id="ana-form" data-site={site} hidden>
+  <form class="form" id="ana-form" data-site={site} {...formAttributes(tool)} hidden>
     <label for="ana-message">Your question</label>
-    <textarea id="ana-message" rows="3" maxlength="2000" required></textarea>
+    <textarea id="ana-message" name="message" {...{ toolparamdescription: tool.fields.message }} rows="3" maxlength={tool.maxLength} required></textarea>
     <button class="button primary" type="submit">Ask Ana</button>
     <p id="ana-status" role="status"></p>
   </form>
   <p><a href={`mailto:${person.email}`}>Email Danilo for quotes and availability</a></p>
   <script>
+    import { ana } from '../config/security';
     const form = document.querySelector<HTMLFormElement>('#ana-form');
     const field = document.querySelector<HTMLTextAreaElement>('#ana-message');
     const send = form?.querySelector('button');
@@ -21,6 +24,7 @@ import { person, site } from '../data/public';
     type Turn = { role: 'user' | 'assistant'; content: string };
     if (form && field && send && log && status) {
       const history: Turn[] = [];
+      let approved = false;
       const appendAnswer = (item: HTMLElement, text: string) => {
         let end = 0;
         for (const match of text.matchAll(/https:\/\/[^\s<>()]+/g)) {
@@ -51,17 +55,14 @@ import { person, site } from '../data/public';
         log.append(item);
         if (log.children.length > 16) log.firstElementChild?.remove();
       };
-      form.addEventListener('submit', async event => {
-        event.preventDefault();
-        const message = field.value.trim();
-        if (send.disabled || !message) return;
+      const ask = async (message: string) => {
         send.disabled = true;
         status.textContent = 'Ana is preparing a reply…';
         try {
           const makeBody = () => JSON.stringify({ message, history });
           const encoder = new TextEncoder();
           while (history.length && encoder.encode(makeBody()).length > 16_384) history.splice(0, 2);
-          const response = await fetch('https://secretary.danilostoletovic.com/chat', {
+          const response = await fetch(ana.endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'Accept-Language': 'en' },
             body: makeBody(),
@@ -76,11 +77,32 @@ import { person, site } from '../data/public';
           if (history.length > 8) history.splice(0, 2);
           if (field.value.trim() === message) field.value = '';
           status.textContent = '';
+          return { reply: data.reply };
         } catch {
           status.textContent = 'Ana is unavailable right now. Try again or use the email link below.';
+          return { error: status.textContent };
         } finally {
           send.disabled = false;
         }
+      };
+      send.addEventListener('click', event => {
+        if (event.isTrusted) {
+          approved = true;
+          setTimeout(() => { approved = false; }, 0);
+        }
+      });
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        const message = field.value.trim();
+        if (send.disabled || !message || message.length > field.maxLength) return;
+        if (!approved || !event.isTrusted) {
+          status.textContent = 'Review the question and click Ask Ana to send it.';
+          return;
+        }
+        approved = false;
+        const result = ask(message);
+        const toolEvent = event as SubmitEvent & { agentInvoked?: boolean; respondWith?: (result: Promise<unknown>) => void };
+        if (toolEvent.agentInvoked) toolEvent.respondWith?.(result);
       });
       form.hidden = false;
     }

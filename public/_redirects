@@ -11,6 +11,7 @@
 /services /commerce/ 301
 /services/ /commerce/ 301
 /index.md /profile.md 301
+/images/danilo.avif /images/danilo-stoletovic.avif 301
 /favicon.png /brand/favicon.png 301
 /favicon.ico /brand/favicon.png 301
 /favicon.svg /brand/favicon.png 301

@@ -3,6 +3,9 @@ import Site from '../layouts/Site.astro';
 import Icon from '../components/Icon.astro';
 import { directories, telephoneHref, telephoneLabel } from '../lib/catalogue';
 import { person, profiles } from '../data/public';
+import { portraitSources } from '../data/portrait';
+const portrait = person.image;
+const sizes = '(max-width: 650px) min(100vw - 32px, 400px), (max-width: 880px) calc(44vw - 27px), min(41.85vw - 28px, 400px)';
 ---
 <Site title={person.name} description={person.summary}>
   <section class="identity" aria-labelledby="identity-title">
@@ -18,7 +21,14 @@ import { person, profiles } from '../data/public';
       </div>
     </div>
     <figure class="identity-art">
-      <img src="/brand/monogram.webp" alt="Danilo Stoletović’s DS monogram" width="768" height="512" fetchpriority="high" />
+      <picture>
+        {portraitSources.map(variants => <source
+          type={variants[0].mimeType}
+          srcset={variants.map(({ url, width }) => `${new URL(url).pathname} ${width}w`).join(', ')}
+          sizes={sizes}
+        />)}
+        <img src={new URL(portrait.url).pathname} alt={portrait.alt} width={portrait.width} height={portrait.height} loading="eager" fetchpriority="high" />
+      </picture>
     </figure>
   </section>
   <section class="site-directory" id="projects" aria-labelledby="directory-title">

@@ -27,7 +27,7 @@ const entities = [{ '@type': 'Article', '@id': study.url + '#article', url: stud
         <p>{project.summary}</p>
         <a href={projectPath(project.id)}>Project details</a>
       </section>
-      {project.image && <figure class="project-shot"><img src={project.image.file} alt={project.image.alt} width={project.image.width} height={project.image.height} loading="lazy" decoding="async" /></figure>}
+      {project.image && <figure class="project-shot"><img src={project.image.file} alt={project.image.alt} width={project.image.width} height={project.image.height} decoding="async" /></figure>}
       <Sources links={study.sources} title="Sources" />
     </aside>
   </article>

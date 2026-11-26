@@ -1,4 +1,7 @@
-export const site = 'https://danilostoletovic.com';
+import { site } from '../config/site.ts';
+import { portraitAlternatives, portraitJpeg } from './portrait.ts';
+
+export { site };
 
 export interface Source {
   label: string;
@@ -12,18 +15,24 @@ export interface Entry {
   sources: readonly Source[];
 }
 
+export const profileCategories = ['Professional', 'Open source', 'Research', 'Social', 'Distribution'] as const;
+export const profileIdentities = ['personal', 'project'] as const;
+export const projectStatuses = ['Released', 'Open-source project', 'Alpha', 'Prototype', 'Experiment'] as const;
+export const projectCategories = ['Robotics', 'Apps', 'Web & AI', 'Systems'] as const;
+export const publicationStatuses = ['Published', 'Submitted', 'In progress', 'Unpublished'] as const;
+
 export interface ProfileLink extends Entry {
   username: string;
-  category: 'Professional' | 'Open source' | 'Research' | 'Social' | 'Distribution';
+  category: typeof profileCategories[number];
   url: string;
-  identity: 'personal' | 'project';
+  identity: typeof profileIdentities[number];
   icon: string;
   primary?: boolean;
 }
 
 export interface Project extends Entry {
-  status: 'Released' | 'Open-source project' | 'Alpha' | 'Prototype' | 'Experiment';
-  category: 'Robotics' | 'Apps' | 'Web & AI' | 'Systems';
+  status: typeof projectStatuses[number];
+  category: typeof projectCategories[number];
   stack: readonly string[];
   role: string;
   includeInCv?: boolean;
@@ -46,7 +55,7 @@ export interface Publication extends Entry {
   authors: readonly { givenName: string; familyName: string; orcid?: string }[];
   date: string;
   venue: string;
-  status: 'Published' | 'Submitted' | 'In progress' | 'Unpublished';
+  status: typeof publicationStatuses[number];
   doi?: string;
   doiRegistration?: 'pending';
   publicationType?: 'Original scientific paper';
@@ -95,16 +104,25 @@ const portfolioNotes = (name: string) => source('Public engineering notes', `htt
 const academicAuthor = { givenName: 'Danilo', familyName: 'Stoletović', orcid: '0009-0008-4855-9109' } as const;
 export const orcidUrl = (id: string) => `https://orcid.org/${id}`;
 
+const professionalName = `${academicAuthor.givenName} ${academicAuthor.familyName}`;
 export const person = {
   ...academicAuthor,
-  name: `${academicAuthor.givenName} ${academicAuthor.familyName}`,
+  name: professionalName,
   alternateNames: ['Danilo Stoletovic', 'Данило Столетовић'],
   title: 'Independent developer & systems builder',
   location: 'Niš, Serbia',
   telephone: '+381677732060',
   email: 'danilo@danilostoletovic.com',
   summary: 'I build applications, websites, and the systems that run them. My work spans the web, mobile, Windows, and embedded computer vision.',
-  portrait: '/images/danilo.avif',
+  portrait: portraitJpeg.url,
+  image: {
+    ...portraitJpeg,
+    alt: `${professionalName} smiling outdoors and wearing glasses`,
+    subject: professionalName,
+    caption: `Professional profile photograph of ${professionalName}`,
+    purpose: 'Professional profile photograph',
+    alternatives: portraitAlternatives,
+  },
   sources: [previousPortfolio, source('GitHub', github), school],
 } as const;
 

@@ -2,8 +2,10 @@ import type { APIRoute, GetStaticPaths } from 'astro';
 import { catalogue, validateCatalogue } from '../lib/catalogue';
 import { anaKnowledge, llmsIndex, newsRss, profileMarkdown, textCatalogue } from '../lib/artifacts';
 import { makeCvPdf } from '../lib/cv-pdf';
-import { person, site } from '../data/public';
+import { person } from '../data/public';
 import { key } from '../data/indexnow.json';
+import { robotsText } from '../config/discovery';
+import { resources, resourcePath } from '../lib/mcp-surface';
 
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n';
 const mimetypes = {
@@ -11,7 +13,7 @@ const mimetypes = {
   xml: 'application/rss+xml; charset=utf-8', webmanifest: 'application/manifest+json; charset=utf-8', pdf: 'application/pdf',
 };
 const paths = [
-  ...Object.keys(catalogue).map(name => name + '.json'), 'mcp-data.json', 'ana-knowledge.json', 'llms.txt', 'llms-full.txt',
+  ...resources.map(resource => resourcePath(resource.key).slice(1)), 'mcp-data.json', 'ana-knowledge.json', 'llms.txt', 'llms-full.txt',
   'profile.md', 'cv.pdf', 'rss.xml', 'site.webmanifest', 'robots.txt', key + '.txt', 'deployment-version.txt',
 ];
 
@@ -31,7 +33,7 @@ export const GET: APIRoute = async ({ params }) => {
     case 'llms-full.txt': body = textCatalogue(); break;
     case 'profile.md': body = profileMarkdown(); break;
     case 'rss.xml': body = newsRss(); break;
-    case 'robots.txt': body = `User-agent: *\nAllow: /\n\nSitemap: ${site}/sitemap.xml\n`; break;
+    case 'robots.txt': body = robotsText(); break;
     case 'mcp-data.json': body = json(catalogue); break;
     case 'ana-knowledge.json': body = json(anaKnowledge); break;
     case 'deployment-version.txt':

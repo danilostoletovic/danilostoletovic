@@ -25,3 +25,5 @@ First author of *SmartVehicle: Building and Controlling a Camera-Based Robotic V
 - Phone: +381 67 773 2060
 
 Open to commercial collaborations, technical challenges, and new opportunities.
+
+See the [agent-readiness report](docs/agent-readiness-report.md), [artifact inventory](docs/agent-artifacts.md), and [Cloudflare release runbook](docs/deployment.md) for generated interfaces and verification.

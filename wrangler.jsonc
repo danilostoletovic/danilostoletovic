@@ -11,10 +11,11 @@
     "binding": "ASSETS",
     "html_handling": "force-trailing-slash",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/mcp", "/mcp/"]
+    "run_worker_first": ["/mcp", "/mcp/", "/a2a/*", "/", "/cv/", "/links/", "/mcp-info/", "/news/", "/academia/*", "/case/*", "/commerce/*", "/side-projects/*"]
   },
   "ratelimits": [
-    { "name": "MCP_RATE_LIMITER", "namespace_id": "49126", "simple": { "limit": 60, "period": 60 } }
+    { "name": "MCP_RATE_LIMITER", "namespace_id": "49126", "simple": { "limit": 60, "period": 60 } },
+    { "name": "A2A_RATE_LIMITER", "namespace_id": "49127", "simple": { "limit": 30, "period": 60 } }
   ],
   "observability": {
     "enabled": true,

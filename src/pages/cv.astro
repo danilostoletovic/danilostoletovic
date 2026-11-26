@@ -13,6 +13,7 @@ import { cv, telephoneHref, telephoneLabel } from '../lib/catalogue';
         <a href={`mailto:${cv.email}`}>{cv.email}</a>
         <a href={telephoneHref}>{telephoneLabel}</a>
         {cv.links.map(profile => <a href={profile.url}>{profile.title}</a>)}
+        <a href={cv.image.url}>{cv.image.purpose}</a>
       </div>
       <p>{cv.summary}</p>
       <a class="button primary print-hide" href="/cv.pdf" download="Danilo-Stoletovic-CV.pdf"><Icon name="download" /> Download CV (PDF)</a>

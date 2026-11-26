@@ -1,0 +1,47 @@
+name: Site and agent contracts
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      VERIFY_URL: http://127.0.0.1:8787
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+      - run: npm run verify:determinism
+      - run: npm run check:worker
+      - run: npx --no-install playwright install --with-deps chromium
+      - name: Verify the built site and local Worker
+        run: |
+          mkdir -p .research
+          npm run preview:worker > .research/worker-test.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent "$VERIFY_URL/robots.txt" > /dev/null; then break; fi
+            sleep 1
+          done
+          if ! curl --fail --silent "$VERIFY_URL/robots.txt" > /dev/null; then
+            cat .research/worker-test.log
+            exit 1
+          fi
+          npm test
+          npm run verify:browser
+          npm run verify:webmcp

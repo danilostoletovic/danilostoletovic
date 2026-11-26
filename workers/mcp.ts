@@ -1,8 +1,11 @@
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server';
+import type * as z from 'zod/v4';
 import type { RateLimit } from '@cloudflare/workers-types';
-import * as z from 'zod/v4';
 import { catalogue } from '../src/lib/catalogue';
-import { resources, resourceUri, toolDescriptions } from '../src/lib/mcp-surface';
+import { resources, resourceUri, mcpTools } from '../src/lib/mcp-surface';
+import { mcpService } from '../src/config/mcp';
+import { discovery } from '../src/config/discovery';
+import { filterProjects } from '../src/lib/project-filter';
 import { site } from '../src/data/public';
 
 export interface McpEnv {
@@ -10,24 +13,6 @@ export interface McpEnv {
   MCP_ALLOWED_ORIGINS?: string;
 }
 
-const maxRequestBodySize = 16 * 1024;
-const id = z.string().max(80).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
-const limit = z.number().int().min(1).max(30).optional().default(20);
-const empty = z.strictObject({});
-const list = z.strictObject({ limit });
-const byId = z.strictObject({ id });
-const byProject = list.extend({ project: id.optional() });
-const projectFilter = list.extend({
-  category: z.enum(['Robotics', 'Apps', 'Web & AI', 'Systems']).optional(),
-  status: z.enum(['Released', 'Open-source project', 'Alpha', 'Prototype', 'Experiment']).optional(),
-});
-const publicationFilter = list.extend({ status: z.enum(['Published', 'Submitted', 'In progress', 'Unpublished']).optional() });
-const newsFilter = list.extend({ year: z.string().regex(/^\d{4}$/).optional() });
-const profileFilter = list.extend({
-  category: z.enum(['Professional', 'Open source', 'Research', 'Social', 'Distribution']).optional(),
-  identity: z.enum(['personal', 'project']).optional(),
-});
-const searchInput = list.extend({ query: z.string().trim().min(2).max(100) });
 const readOnly = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false } as const;
 
 function response(data: Record<string, unknown>, isError = false) {
@@ -79,36 +64,37 @@ function search(query: string, capacity: number) {
 }
 
 const mcp = createMcpHandler(() => {
-  const server = new McpServer({ name: 'danilo-professional-profile', title: 'Danilo Stoletović', version: '1.0.0', websiteUrl: site });
-  const options = <T extends z.ZodType>(name: keyof typeof toolDescriptions, inputSchema: T) => ({
-    description: toolDescriptions[name], inputSchema, annotations: readOnly,
+  const server = new McpServer(mcpService.identity);
+  const options = <T extends z.ZodType>(tool: { description: string; input: T }) => ({
+    description: tool.description, inputSchema: tool.input,
+    annotations: readOnly,
   });
 
-  server.registerTool('get_profile', options('get_profile', empty), () => response(catalogue.profile));
-  server.registerTool('get_experience', options('get_experience', empty), () => response({ items: catalogue.experience }));
-  server.registerTool('list_services', options('list_services', list), ({ limit }) => response(collection(catalogue.services, limit)));
-  server.registerTool('list_projects', options('list_projects', projectFilter), ({ limit, category, status }) => response(collection(
-    catalogue.projects.filter(project => (!category || project.category === category) && (!status || project.status === status)), limit,
+  server.registerTool('get_profile', options(mcpTools.get_profile), () => response(catalogue.profile));
+  server.registerTool('get_experience', options(mcpTools.get_experience), () => response({ items: catalogue.experience }));
+  server.registerTool('list_services', options(mcpTools.list_services), ({ limit }) => response(collection(catalogue.services, limit)));
+  server.registerTool('list_projects', options(mcpTools.list_projects), ({ limit, category, status }) => response(collection(
+    filterProjects(catalogue.projects, { category, status }), limit,
   )));
-  server.registerTool('get_project', options('get_project', byId), input => individual(catalogue.projects, input.id));
-  server.registerTool('list_case_studies', options('list_case_studies', byProject), ({ limit, project }) => response(collection(
+  server.registerTool('get_project', options(mcpTools.get_project), input => individual(catalogue.projects, input.id));
+  server.registerTool('list_case_studies', options(mcpTools.list_case_studies), ({ limit, project }) => response(collection(
     catalogue['case-studies'].filter(study => !project || study.project === project), limit,
   )));
-  server.registerTool('get_case_study', options('get_case_study', byId), input => individual(catalogue['case-studies'], input.id));
-  server.registerTool('list_publications', options('list_publications', publicationFilter), ({ limit, status }) => response(collection(
+  server.registerTool('get_case_study', options(mcpTools.get_case_study), input => individual(catalogue['case-studies'], input.id));
+  server.registerTool('list_publications', options(mcpTools.list_publications), ({ limit, status }) => response(collection(
     catalogue.publications.filter(work => !status || work.status === status), limit,
   )));
-  server.registerTool('list_achievements', options('list_achievements', byProject), ({ limit, project }) => response(collection(
+  server.registerTool('list_achievements', options(mcpTools.list_achievements), ({ limit, project }) => response(collection(
     catalogue.achievements.filter(item => !project || item.project === project), limit,
   )));
-  server.registerTool('list_news', options('list_news', newsFilter), ({ limit, year }) => response(collection(
+  server.registerTool('list_news', options(mcpTools.list_news), ({ limit, year }) => response(collection(
     catalogue.news.filter(item => !year || item.date.startsWith(year)), limit,
   )));
-  server.registerTool('list_profiles', options('list_profiles', profileFilter), ({ limit, category, identity }) => response(collection(
+  server.registerTool('list_profiles', options(mcpTools.list_profiles), ({ limit, category, identity }) => response(collection(
     catalogue.links.filter(profile => (!category || profile.category === category) && (!identity || profile.identity === identity)), limit,
   )));
-  server.registerTool('get_contact', options('get_contact', empty), () => response(catalogue.contact));
-  server.registerTool('search_content', options('search_content', searchInput), ({ query, limit }) => response(search(query, limit)));
+  server.registerTool('get_contact', options(mcpTools.get_contact), () => response(catalogue.contact));
+  server.registerTool('search_content', options(mcpTools.search_content), ({ query, limit }) => response(search(query, limit)));
 
   for (const resource of resources) {
     const uri = resourceUri(resource.id);
@@ -117,7 +103,7 @@ const mcp = createMcpHandler(() => {
     }, () => ({ contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(catalogue[resource.key]) }] }));
   }
   return server;
-}, { legacy: 'stateless', responseMode: 'json', maxRequestBodySize, maxSubscriptions: 0 });
+}, { legacy: 'stateless', responseMode: 'json', maxRequestBodySize: mcpService.maxBody, maxSubscriptions: 0 });
 
 export async function serveMcp(request: Request, env: McpEnv): Promise<Response> {
   const origin = request.headers.get('Origin');
@@ -146,9 +132,9 @@ export async function serveMcp(request: Request, env: McpEnv): Promise<Response>
   } catch {
     return error(503, 'MCP is temporarily unavailable.');
   }
-  if (Number(request.headers.get('Content-Length')) > maxRequestBodySize) return error(413, 'Request body is too large.');
+  if (Number(request.headers.get('Content-Length')) > mcpService.maxBody) return error(413, 'Request body is too large.');
   if (request.method === 'GET' && request.headers.get('Accept')?.includes('text/html')) {
-    headers.set('Location', new URL('/mcp-info/', request.url).href);
+    headers.set('Location', new URL(discovery.integrationGuide.path, request.url).href);
     return new Response(null, { status: 303, headers });
   }
   try {

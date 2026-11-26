@@ -22,9 +22,14 @@ try {
       document.addEventListener('securitypolicyviolation', event => window.cspViolations.push(event.violatedDirective));
     });
     const page = await context.newPage();
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Audits.enable');
     const errors = [];
+    cdp.on('Audits.issueAdded', ({ issue }) => errors.push(`${page.url()} DevTools issue ${issue.code} ${JSON.stringify(issue.details)}`));
     const linked = new Map();
     page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+    page.on('requestfailed', request => errors.push(`${request.url()} ${request.failure()?.errorText}`));
     for (const path of mode === 'small-light' ? ['/', '/commerce/'] : destinations) {
       await page.goto(origin + path, { waitUntil: 'load' });
       const result = await page.evaluate(({ origin, expectedSite }) => {

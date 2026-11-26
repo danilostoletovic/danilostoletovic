@@ -2,9 +2,12 @@
 import Site from '../layouts/Site.astro';
 import PageHeading from '../components/PageHeading.astro';
 import { mcpUrl } from '../lib/catalogue';
-import { resources, resourceUri, toolDescriptions } from '../lib/mcp-surface';
+import { resources, resourceUri, mcpTools } from '../lib/mcp-surface';
+import { mcpService } from '../config/mcp';
+import { discovery } from '../config/discovery';
+import { a2a } from '../config/a2a';
 const title = 'Model Context Protocol';
-const description = 'Access Danilo Stoletović’s verified public professional catalogue from an MCP client.';
+const description = mcpService.description;
 const example = JSON.stringify({ mcpServers: { 'danilo-profile': { type: 'http', url: mcpUrl } } }, null, 2);
 ---
 <Site {title} {description}>
@@ -20,7 +23,7 @@ const example = JSON.stringify({ mcpServers: { 'danilo-profile': { type: 'http',
       <section class="panel">
         <h2>Tools</h2>
         <dl class="definition">
-          {Object.entries(toolDescriptions).map(([name, description]) => <><dt><code>{name}</code></dt><dd>{description}</dd></>)}
+          {Object.entries(mcpTools).map(([name, { description }]) => <><dt><code>{name}</code></dt><dd>{description}</dd></>)}
         </dl>
       </section>
     </div>
@@ -34,6 +37,14 @@ const example = JSON.stringify({ mcpServers: { 'danilo-profile': { type: 'http',
         <p>The server supports stateless Streamable HTTP with current and compatible 2025 clients. Requests are capped at 16 KiB. Search and lists return up to 30 items. Send only public queries.</p>
         <p><a href="/mcp-data.json">Download the public JSON catalogue</a></p>
         <p><a href="/llms.txt">Browse text and machine-readable formats</a></p>
+        <ul class="plain-list">
+          <li><a href={mcpService.cardPath}>MCP Server Card</a></li>
+          <li><a href={discovery.ard.path}>ARD manifest</a></li>
+          <li><a href={discovery.apiCatalog.path}>API catalog</a></li>
+          <li><a href={discovery.skills.path}>Agent Skills index</a></li>
+          <li><a href={a2a.cardPath}>A2A Agent Card</a></li>
+        </ul>
+        <p>The A2A catalogue assistant answers standalone text requests such as <code>projects: SmartVehicle</code>. Send <code>POST {a2a.sendPath}</code> with <code>A2A-Version: {a2a.protocolVersion}</code>.</p>
       </section>
     </aside>
   </div>

@@ -1,4 +1,4 @@
-import { publicationPath, publicationStatus, type PublicWork } from './catalogue';
+import { publicationPath, publicationStatus, type PublicWork } from './catalogue.ts';
 
 export const citationFormats = {
   'citation.bib': { label: 'BibTeX', contentType: 'application/x-bibtex; charset=utf-8' },

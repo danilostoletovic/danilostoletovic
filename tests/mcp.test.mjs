@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { mcpService } from '../src/config/mcp.ts';
+import { discovery } from '../src/config/discovery.ts';
 
 const origin = process.env.VERIFY_URL || 'http://127.0.0.1:8787';
 const url = new URL('/mcp', origin);
@@ -17,7 +19,11 @@ test('official MCP client discovers and uses the public catalogue', async t => {
   await client.connect(transport);
   assert.equal(client.getProtocolEra(), 'modern');
   assert.equal(client.getNegotiatedProtocolVersion(), '2026-07-28');
-  assert.equal(client.getServerVersion().name, 'danilo-professional-profile');
+  const card = await (await fetchFile(mcpService.cardPath)).json();
+  assert.equal(client.getServerVersion().name, card.name);
+  assert.equal(client.getServerVersion().version, card.version);
+  assert.equal(card.remotes[0].url, mcpService.url);
+  assert.ok(card.remotes[0].supportedProtocolVersions.includes(client.getNegotiatedProtocolVersion()));
   assert.ok(client.getServerCapabilities().tools);
   assert.ok(client.getServerCapabilities().resources);
 
@@ -25,6 +31,8 @@ test('official MCP client discovers and uses the public catalogue', async t => {
   const { tools } = await client.listTools();
   const { resources } = await client.listResources();
   assert.equal(tools.length, 13);
+  const ard = await (await fetchFile(discovery.ard.path)).json();
+  assert.deepEqual(ard.entries.find(entry => entry.type === mcpService.cardType).capabilities.sort(), tools.map(tool => tool.name).sort());
   assert.equal(resources.length, 10);
   assert.ok(tools.every(tool => tool.annotations.readOnlyHint && tool.annotations.destructiveHint === false));
   const collections = {
@@ -81,6 +89,15 @@ test('legacy handshake, validation, CORS, and response cache policy', async () =
     jsonrpc: '2.0', id: 1, method: 'initialize',
     params: { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'legacy-check', version: '1.0.0' } },
   });
+  for (const protocolVersion of mcpService.protocolVersions.filter(version => version.startsWith('2025-'))) {
+    const supported = await post(JSON.stringify({
+      ...JSON.parse(initialize), params: { ...JSON.parse(initialize).params, protocolVersion },
+    }));
+    assert.equal(supported.status, 200, protocolVersion);
+    const body = await supported.text();
+    const agreement = JSON.parse(body.startsWith('{') ? body : body.split('\n').find(line => line.startsWith('data:')).slice(5));
+    assert.equal(agreement.result.protocolVersion, protocolVersion);
+  }
   const legacy = await post(initialize);
   assert.equal(legacy.status, 200);
   assert.equal(legacy.headers.get('cache-control'), 'no-store, no-transform');
