@@ -3,7 +3,7 @@ import { catalogue, validateCatalogue } from '../lib/catalogue';
 import { anaKnowledge, llmsIndex, newsRss, profileMarkdown, textCatalogue } from '../lib/artifacts';
 import { makeCvPdf } from '../lib/cv-pdf';
 import { person } from '../data/public';
-import { key } from '../data/indexnow.json';
+import { deploymentVersion } from '../config/indexnow';
 import { robotsText } from '../config/discovery';
 import { resources, resourcePath } from '../lib/mcp-surface';
 
@@ -14,7 +14,7 @@ const mimetypes = {
 };
 const paths = [
   ...resources.map(resource => resourcePath(resource.key).slice(1)), 'mcp-data.json', 'ana-knowledge.json', 'llms.txt', 'llms-full.txt',
-  'profile.md', 'cv.pdf', 'rss.xml', 'site.webmanifest', 'robots.txt', key + '.txt', 'deployment-version.txt',
+  'profile.md', 'cv.pdf', 'rss.xml', 'site.webmanifest', 'robots.txt', 'deployment-version.txt',
 ];
 
 export const getStaticPaths = (() => {
@@ -37,9 +37,8 @@ export const GET: APIRoute = async ({ params }) => {
     case 'mcp-data.json': body = json(catalogue); break;
     case 'ana-knowledge.json': body = json(anaKnowledge); break;
     case 'deployment-version.txt':
-      body = (process.env.WORKERS_CI_COMMIT_SHA || process.env.CF_PAGES_COMMIT_SHA || process.env.INDEXNOW_DEPLOY_SHA || 'local') + '\n';
+      body = deploymentVersion() + '\n';
       break;
-    case key + '.txt': body = key; break;
     case 'site.webmanifest':
       body = json({
         name: person.name, short_name: 'D. Stoletović', start_url: '/', scope: '/', display: 'standalone',

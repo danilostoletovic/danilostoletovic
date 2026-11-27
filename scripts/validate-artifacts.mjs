@@ -11,7 +11,7 @@ import { absolute, contentSignal, discovery, robotsText } from '../src/config/di
 import { markdownPath } from '../src/config/markdown.ts';
 import { mcpService } from '../src/config/mcp.ts';
 import { analytics } from '../src/config/security.ts';
-import indexNow from '../src/data/indexnow.json' with { type: 'json' };
+import { deploymentVersionPath, indexNowKey, indexNowKeyPath, indexNowManifestPath } from '../src/config/indexnow.ts';
 import { person } from '../src/data/public.ts';
 import { pageMarkdown } from '../src/lib/artifacts.ts';
 import { discoveryArtifacts } from '../src/lib/discovery-artifacts.ts';
@@ -41,7 +41,11 @@ const artifacts = discoveryArtifacts();
 assert.equal(new Set(artifacts.map(file => file.path)).size, artifacts.length, 'Artifact path collision');
 for (const artifact of artifacts) assert.equal(await read(artifact.path), artifact.body, `Stale file ${artifact.path}`);
 assert.equal(await read('/robots.txt'), robotsText());
-assert.equal(await read(`/${indexNow.key}.txt`), indexNow.key, 'IndexNow verification body');
+const key = indexNowKey();
+if (key) assert.equal(await read(indexNowKeyPath(key)), key, 'IndexNow verification body');
+const indexNowManifest = await json(indexNowManifestPath);
+assert.equal(indexNowManifest.version, 1);
+assert.equal(indexNowManifest.release, (await read(deploymentVersionPath)).trim());
 
 const sitemap = await read(discovery.sitemap);
 const sitemapRoot = xml(sitemap, 'urlset');
@@ -53,6 +57,7 @@ const pages = pageMarkdown();
 const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
 assert.deepEqual(new Set(locations), new Set([...pages.keys()].map(absolute)));
 assert.equal(new Set(locations).size, locations.length);
+assert.deepEqual(Object.keys(indexNowManifest.urls).sort(), locations.toSorted());
 const headers = await read('/_headers');
 assert.match(headers, /script-src 'self' 'sha256-[-A-Za-z0-9+/=]+'/);
 assert.ok(headers.includes(`Content-Signal: ${contentSignal}`));
@@ -62,6 +67,8 @@ for (const [path, body] of pages) {
   const format = markdownPath(path);
   assert.equal(await read(format), body, `Stale Markdown for ${path}`);
   const html = await read(path + 'index.html');
+  const fingerprint = createHash('sha256').update(JSON.stringify([html, body])).digest('hex');
+  assert.equal(indexNowManifest.urls[absolute(path)], fingerprint, `IndexNow fingerprint for ${path}`);
   assert.ok(html.includes(`rel="canonical" href="${absolute(path)}"`));
   assert.ok(html.includes(`rel="ard" type="${discovery.ard.type}" href="${discovery.ard.path}"`));
   const jsonLd = html.match(/<script type="application\/ld\+json">(.+?)<\/script>/);

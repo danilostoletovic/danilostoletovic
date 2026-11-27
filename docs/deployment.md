@@ -49,6 +49,12 @@ The Astro build exports `dist/ana-knowledge.json` with the curated public `profi
 
 ## IndexNow
 
-The build retains the previous public key URL and publishes the immutable commit marker. The GitHub workflow can run on a successful GitHub `Production` deployment status or manually for a released commit. If the existing Workers Builds pipeline does not emit a GitHub deployment status, run the workflow manually after verifying the rollout or add a success bridge to the existing pipeline. The script checks the live commit marker, the exact key body, and all submitted canonical URLs before contacting IndexNow. Its default batch is the current sitemap. Pass a specific current canonical URL to submit one page.
+Set a persistent `INDEXNOW_KEY` in the Worker’s **Build** environment variables and in the repository’s **Actions secrets**. Use the same value in both places. Reuse the previously deployed key to keep its verification URL, or generate a new one with `openssl rand -hex 32`. The key accepts 8–128 letters, digits, or hyphens. Wrangler runtime variables are unnecessary. Local builds can set `INDEXNOW_KEY` in the shell to generate and test the exact root-level verification file.
 
-No additional database, persistent store, or subscription is required. Static asset, MCP, log, and Ana usage remain subject to the existing Cloudflare and AI provider accounts.
+Astro builds `/indexnow-manifest.json` from the same canonical pages as the XML sitemap. Each URL has a deterministic SHA-256 fingerprint of its rendered HTML and negotiated Markdown. The manifest includes the deployment commit and is served with `no-store` and `noindex`.
+
+A push to `main` starts the GitHub Actions workflow, which waits up to six minutes for the corresponding release marker and manifest on the production domain. Successful GitHub Production deployment statuses also trigger it when available. The hourly run reconciles the current live release after a slow build, missed wake-up, or submission failure. **Run workflow** on the default branch to reconcile immediately. A release already superseded on the live domain is reconciled through the newer live manifest.
+
+The first run submits the live sitemap’s canonical URLs. Subsequent runs compare the live manifest with the last accepted URL fingerprints on the workflow-managed `indexnow-state` branch. The workflow verifies the key file and changed live canonical pages, sends removed URLs alongside additions and updates, and saves each accepted batch. Identical fingerprints produce no submission. Keep the state branch writable by GitHub Actions and outside the Cloudflare production or preview branches. If GitHub cannot persist an accepted batch, a later run may send it again.
+
+The workflow uses the built-in GitHub token. Static asset, MCP, log, and Ana usage remain subject to the existing Cloudflare and AI provider accounts.

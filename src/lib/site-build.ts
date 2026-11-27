@@ -9,6 +9,7 @@ import { markdownAssetPath, markdownCollections, markdownPath, markdownWorkerRou
 import { mcpService } from '../config/mcp.ts';
 import { a2a } from '../config/a2a.ts';
 import { securityHeaders } from '../config/security.ts';
+import { deploymentVersion, deploymentVersionPath, indexNowKey, indexNowKeyPath, indexNowManifestPath, type IndexNowManifest } from '../config/indexnow.ts';
 import { citationFormats } from './citations.ts';
 import { pageMarkdown, xml } from './artifacts.ts';
 import { discoveryArtifacts, type Artifact } from './discovery-artifacts.ts';
@@ -39,6 +40,8 @@ export async function generateSiteArtifacts({ pages, dir }: { pages: { pathname:
     .filter(({ pathname }) => !pathname.includes('.') && !/^\/?(?:404|500)\/?$/.test(pathname))
     .map(({ pathname }) => new URL(pathname.replace(/\/?$/, '/'), site + '/').pathname))].sort();
   const content = pageMarkdown();
+  const key = indexNowKey();
+  const manifest: IndexNowManifest = { version: 1, release: deploymentVersion(), urls: {} };
   const hash = createHash('sha256').update(themeScript.replace(/\r\n?/g, '\n')).digest('base64');
   const headers = [
     headerBlock('/*', { ...securityHeaders(hash), 'Content-Signal': contentSignal }),
@@ -47,13 +50,23 @@ export async function generateSiteArtifacts({ pages, dir }: { pages: { pathname:
     ...portraitAssets.map(({ url, mimeType }) => headerBlock(new URL(url).pathname, {
       'Content-Type': mimeType, 'Cache-Control': 'public, max-age=86400',
     })),
-    headerBlock('/deployment-version.txt', { 'Cache-Control': 'no-store' }),
+    headerBlock(deploymentVersionPath, { 'Cache-Control': 'no-store' }),
+    headerBlock(indexNowManifestPath, { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }),
     headerBlock('/rss.xml', { 'Content-Type': 'application/rss+xml; charset=utf-8' }),
     headerBlock('/site.webmanifest', { 'Content-Type': 'application/manifest+json; charset=utf-8' }),
     headerBlock('/cv.pdf', { 'Content-Type': 'application/pdf' }),
     ...Object.entries(citationFormats).map(([name, format]) => headerBlock(`/academia/:id/${name}`, { 'Content-Type': format.contentType })),
   ];
   const artifacts: Artifact[] = discoveryArtifacts();
+  if (key) {
+    const path = indexNowKeyPath(key);
+    const existing = await readFile(new URL('.' + path, dir)).catch(error => {
+      if (error.code !== 'ENOENT') throw error;
+      return undefined;
+    });
+    if (existing) throw new Error('INDEXNOW_KEY conflicts with a generated static file.');
+    artifacts.push({ path, type: 'text/plain; charset=utf-8', body: key });
+  }
   for (const artifact of artifacts) {
     if (artifact.path.startsWith('/.well-known/agent-skills/') && artifact.path.endsWith('/SKILL.md')) continue;
     headers.push(headerBlock(artifact.path, {
@@ -85,6 +98,8 @@ export async function generateSiteArtifacts({ pages, dir }: { pages: { pathname:
     const markdown = markdownPath(path);
     const body = content.get(path);
     if (!markdown || !body) throw new Error(`Missing Markdown source for canonical page ${path}`);
+    const html = await readFile(new URL('.' + path + 'index.html', dir), 'utf8');
+    manifest.urls[absolute(path)] = createHash('sha256').update(JSON.stringify([html, body])).digest('hex');
     if (path !== '/') artifacts.push({ path: markdown, type: discovery.markdownType, body });
     if (path.split('/').length <= 3) markdownLinks(path, markdown);
     content.delete(path);
@@ -100,6 +115,7 @@ export async function generateSiteArtifacts({ pages, dir }: { pages: { pathname:
   }
   await Promise.all([
     writeArtifact(dir, discovery.sitemap, sitemap),
+    writeArtifact(dir, indexNowManifestPath, JSON.stringify(manifest, null, 2) + '\n'),
     writeArtifact(dir, '/_headers', headerFile),
     ...artifacts.map(artifact => writeArtifact(dir, artifact.path, artifact.body)),
   ]);
