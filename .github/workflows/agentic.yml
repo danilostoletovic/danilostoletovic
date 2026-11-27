@@ -16,6 +16,7 @@ jobs:
     env:
       VERIFY_URL: http://127.0.0.1:8787
       WRANGLER_SEND_METRICS: 'false'
+      INDEXNOW_DEPLOY_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -45,3 +46,9 @@ jobs:
           npm test
           npm run verify:browser
           npm run verify:webmcp
+      - uses: actions/upload-artifact@v4
+        if: github.ref_name == github.event.repository.default_branch && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        with:
+          name: indexnow-manifest
+          path: dist/indexnow-manifest.json
+          if-no-files-found: error

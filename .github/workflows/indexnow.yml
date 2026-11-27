@@ -1,7 +1,9 @@
 name: IndexNow after production deployment
 
 on:
-  push:
+  workflow_run:
+    workflows: [Site and agent contracts]
+    types: [completed]
     branches: [main]
   deployment_status:
   schedule:
@@ -10,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: indexnow-production
@@ -20,6 +23,10 @@ jobs:
     if: >-
       startsWith(github.ref, 'refs/heads/') &&
       github.ref_name == github.event.repository.default_branch &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))) &&
       (github.event_name != 'deployment_status' ||
        (github.event.deployment_status.state == 'success' &&
         github.event.deployment.production_environment == true &&
@@ -37,6 +44,8 @@ jobs:
           node-version: '24'
       - name: Reconcile the live production manifest
         env:
+          GH_TOKEN: ${{ github.token }}
+          INDEXNOW_PRODUCTION_BRANCH: ${{ github.event.repository.default_branch }}
           INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
-          INDEXNOW_DEPLOY_SHA: ${{ github.event.deployment.sha || (github.event_name == 'push' && github.sha) || '' }}
+          INDEXNOW_DEPLOY_SHA: ${{ github.event.deployment.sha || github.event.workflow_run.head_sha || '' }}
         run: node scripts/indexnow.mjs

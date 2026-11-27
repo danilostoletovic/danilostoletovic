@@ -1,4 +1,7 @@
 import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
 import { deploymentVersionPath, indexNowKey, indexNowKeyPath, indexNowManifestPath } from '../src/config/indexnow.ts';
@@ -44,30 +47,28 @@ async function request(url, options = {}) {
   return fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(15_000), ...options });
 }
 
-async function productionFile(path) {
-  const response = await request(new URL(path, origin), { headers: { 'Cache-Control': 'no-cache' } });
-  if (response.status === 200) return response;
-  await response.body?.cancel();
-  throw new Error(`Production asset returned HTTP ${response.status}.`);
+function productionFile(path) {
+  return request(new URL(path, origin), { headers: { 'Cache-Control': 'no-cache' } });
 }
 
 async function liveRelease() {
-  return (await (await productionFile(deploymentVersionPath)).text()).trim();
+  const response = await productionFile(deploymentVersionPath);
+  if (response.status !== 200) {
+    await response.body?.cancel();
+    throw new Error(`Production release marker returned HTTP ${response.status}.`);
+  }
+  return (await response.text()).trim();
 }
 
-async function liveManifest(expected) {
+async function waitForLiveRelease(expected) {
   const deadline = Date.now() + (expected ? 360_000 : 15_000);
   do {
     let reason = 'Waiting for the expected Cloudflare release.';
     try {
       const release = await liveRelease();
-      if (sha.test(release) && (!expected || release === expected)) {
-        const manifest = await (await productionFile(indexNowManifestPath)).json();
-        if (manifest.release === release) return manifest;
-        reason = 'The release marker and manifest are temporarily out of sync.';
-      }
-    } catch {
-      reason = 'Waiting for the production release marker and manifest.';
+      if (sha.test(release) && (!expected || release === expected)) return release;
+    } catch (error) {
+      reason = `Could not read the production release marker: ${error.message}`;
     }
     if (Date.now() >= deadline) {
       if (!expected) throw new Error(reason);
@@ -79,21 +80,39 @@ async function liveManifest(expected) {
   } while (true);
 }
 
-async function verifyPage(url) {
-  const response = await request(url, { headers: { Accept: 'text/html', 'Cache-Control': 'no-cache' } });
-  const html = await response.text();
-  const noindex = /\b(?:noindex|none)\b/i;
-  if (response.status !== 200 || !html.includes(`<link rel="canonical" href="${url}">`) ||
-      noindex.test(response.headers.get('X-Robots-Tag') ?? '') ||
-      /<meta\b[^>]*name=["']robots["'][^>]*content=["'][^"']*\b(?:noindex|none)\b/i.test(html)) {
-    throw new Error(`Canonical page is not indexable on the live release: ${url}`);
+function verifiedManifest(release) {
+  const repo = process.env.GITHUB_REPOSITORY;
+  const branch = process.env.INDEXNOW_PRODUCTION_BRANCH;
+  if (!repo || !branch) throw new Error('GitHub repository and production branch are required.');
+  const gh = args => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });
+  const { workflow_runs: runs } = JSON.parse(gh([
+    'api', '--method', 'GET', `repos/${repo}/actions/workflows/agentic.yml/runs`,
+    '-f', `head_sha=${release}`, '-f', `branch=${branch}`, '-f', 'status=success',
+  ]));
+  const run = runs.find(record => record.head_sha === release && record.head_branch === branch &&
+    record.head_repository?.full_name === repo && ['push', 'workflow_dispatch'].includes(record.event));
+  if (!run) throw new Error(`No successful site verification run for live release ${release}.`);
+
+  const directory = mkdtempSync(join(tmpdir(), 'indexnow-artifact-'));
+  try {
+    gh(['run', 'download', String(run.id), '--repo', repo, '--name', 'indexnow-manifest', '--dir', directory]);
+    const manifest = JSON.parse(readFileSync(join(directory, indexNowManifestPath.slice(1)), 'utf8'));
+    if (manifest.release !== release) throw new Error('The verified manifest does not match the live production commit.');
+    return manifest;
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
   }
 }
 
 async function verifyKey(key) {
   const response = await productionFile(indexNowKeyPath(key));
-  if (!response.headers.get('content-type')?.startsWith('text/plain') || await response.text() !== key) {
-    throw new Error('The configured IndexNow verification file is missing or incorrect on production.');
+  if (response.headers.get('cf-mitigated') === 'challenge') {
+    await response.body?.cancel();
+    console.log('Cloudflare challenged the verification request. IndexNow will validate ownership directly.');
+    return;
+  }
+  if (response.status !== 200 || !response.headers.get('content-type')?.startsWith('text/plain') || await response.text() !== key) {
+    throw new Error(`The configured IndexNow verification file is missing or incorrect on production (HTTP ${response.status}).`);
   }
 }
 
@@ -141,12 +160,12 @@ function checkpoint() {
   git(['fetch', '--no-tags', '--depth=1', 'origin', stateRef]);
   const parent = git(['rev-parse', 'FETCH_HEAD']);
   const state = JSON.parse(git(['show', `${parent}:${stateFile}`]));
-  return { previous: parseManifest(state, { checkpoint: true }), parent };
+  return { previous: parseManifest(state, { checkpoint: true }), parent, completedRelease: state.complete === true ? state.release : undefined };
 }
 
-function saveCheckpoint(release, previous, parent) {
+function saveCheckpoint(release, previous, parent, complete) {
   // An orphan history keeps checkpoints out of the deploy branch and preserves them beyond artifact retention.
-  const snapshot = JSON.stringify({ version: 1, release, urls: Object.fromEntries([...previous].sort()) }, null, 2) + '\n';
+  const snapshot = JSON.stringify({ version: 1, release, complete, urls: Object.fromEntries([...previous].sort()) }, null, 2) + '\n';
   const blob = git(['hash-object', '-w', '--stdin'], snapshot);
   const tree = git(['mktree'], `100644 blob ${blob}\t${stateFile}\n`);
   const commit = git([
@@ -165,23 +184,26 @@ async function main() {
   }
   const expected = process.env.INDEXNOW_DEPLOY_SHA;
   if (expected && !sha.test(expected)) throw new Error('Invalid expected deployment SHA.');
-  const manifest = await liveManifest(expected);
-  if (!manifest) return;
-  const current = parseManifest(manifest);
-  const { release } = manifest;
-  let { previous, parent } = checkpoint();
+  const release = await waitForLiveRelease(expected);
+  if (!release) return;
+  const { previous, completedRelease, parent: stateParent } = checkpoint();
+  if (completedRelease === release) {
+    console.log(`Production ${release} has already been reconciled.`);
+    return;
+  }
+  const current = parseManifest(verifiedManifest(release));
+  let parent = stateParent;
   const { added, modified, removed } = changesSince(previous, current);
   console.log(`Production ${release}: ${added.length} added, ${modified.length} modified, ${removed.length} removed.`);
   const changed = [...added, ...modified, ...removed];
-  if (!changed.length) return;
+  if (!changed.length) {
+    saveCheckpoint(release, previous, parent, true);
+    return;
+  }
 
   await verifyKey(key);
   for (let offset = 0; offset < changed.length; offset += batchSize) {
     const batch = changed.slice(offset, offset + batchSize);
-    const livePages = batch.filter(url => current.has(url));
-    for (let i = 0; i < livePages.length; i += 8) {
-      await Promise.all(livePages.slice(i, i + 8).map(verifyPage));
-    }
     await submitBatch(key, batch, {
       beforeSend: async () => {
         if (await liveRelease() !== release) throw new Error('Production changed before submission. The next workflow will reconcile the new release.');
@@ -191,7 +213,7 @@ async function main() {
       if (current.has(url)) previous.set(url, current.get(url));
       else previous.delete(url);
     }
-    parent = saveCheckpoint(release, previous, parent);
+    parent = saveCheckpoint(release, previous, parent, offset + batch.length === changed.length);
   }
 }
 
