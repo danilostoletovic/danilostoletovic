@@ -79,6 +79,7 @@ export function structuredData(title: string, description: string, path: string,
       ...(breadcrumbs.length ? [{
         '@type': 'BreadcrumbList',
         '@id': canonical + '#breadcrumbs',
+        name: title,
         itemListElement: breadcrumbs.map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, item: site + item.path })),
       }] : []),
       ...entities,

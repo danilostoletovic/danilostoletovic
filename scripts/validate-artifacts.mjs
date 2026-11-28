@@ -74,6 +74,11 @@ for (const [path, body] of pages) {
   const jsonLd = html.match(/<script type="application\/ld\+json">(.+?)<\/script>/);
   assert.ok(jsonLd, `Missing JSON-LD for ${path}`);
   const graph = JSON.parse(jsonLd[1])['@graph'];
+  if (path !== '/') {
+    const page = graph.find(node => node['@id'] === `${absolute(path)}#page`);
+    const breadcrumbs = graph.find(node => node['@type'] === 'BreadcrumbList');
+    assert.equal(breadcrumbs?.name, page.name, `Breadcrumb list name for ${path}`);
+  }
   const identity = graph.find(node => node['@type'] === 'Person');
   const image = graph.find(node => node['@id'] === identity.image['@id']);
   assert.equal(image['@type'], 'ImageObject', path);
