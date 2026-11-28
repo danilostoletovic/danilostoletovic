@@ -34,11 +34,7 @@ const identity = {
 export const author = { '@id': personId };
 
 export function publicationSchema(work: PublicWork): Schema {
-  const event = {
-    '@type': 'Event', name: work.venue,
-    location: work.proceedings && { '@type': 'Place', name: work.proceedings.location },
-    organizer: work.proceedings?.organizers.map(name => ({ '@type': 'Organization', name })),
-  };
+  const { proceedings } = work;
   return {
     '@type': 'ScholarlyArticle', '@id': work.url + '#article', url: work.url, headline: work.title,
     name: work.title, description: work.summary, datePublished: work.date,
@@ -48,11 +44,12 @@ export function publicationSchema(work: PublicWork): Schema {
     author: work.authorDetails.map((item, index) => item.orcid === person.orcid ? author : {
       '@type': 'Person', name: work.authors[index], givenName: item.givenName, familyName: item.familyName, sameAs: item.orcidUrl,
     }),
-    pageStart: work.proceedings?.firstPage,
+    pageStart: proceedings?.firstPage,
     about: work.project && { '@id': site + projectPath(work.project) + '#project' },
-    isPartOf: work.proceedings ? {
-      '@type': 'Book', name: work.venue, isbn: work.proceedings.isbn,
-      bookFormat: 'https://schema.org/PrintBook', datePublished: work.date, about: event,
+    isPartOf: proceedings ? {
+      '@type': 'Book', name: work.venue, isbn: proceedings.isbn,
+      bookFormat: 'https://schema.org/PrintBook', datePublished: work.date,
+      description: `Conference held in ${proceedings.location}. Organized by ${proceedings.organizers.join(', ')}.`,
     } : { '@type': 'CreativeWork', name: work.venue },
     mainEntityOfPage: { '@id': work.url + '#page' },
   };

@@ -110,6 +110,7 @@ test('the SmartVehicle paper is citable across the catalogue, website, and downl
   ]) assert.ok(head.includes(`name="citation_${name}" content="${value}"`), name);
   assert.ok(html.includes(`href="${work.doiUrl}"`));
   assert.doesNotMatch(head, /citation_lastpage|citation_publisher|citation_pdf_url/);
+  assert.doesNotMatch(head, /"@type"\s*:\s*"Event"/);
   const graph = JSON.parse(head.match(/<script type="application\/ld\+json">(.+?)<\/script>/)[1])['@graph'];
   const identity = graph.find(node => node['@type'] === 'Person');
   const article = graph.find(node => node['@type'] === 'ScholarlyArticle');
@@ -118,10 +119,14 @@ test('the SmartVehicle paper is citable across the catalogue, website, and downl
   assert.deepEqual(article.author[0], { '@id': identity['@id'] });
   assert.equal(article.author[1].name, work.authors[1]);
   assert.equal(article.identifier.url, work.doiUrl);
+  assert.equal(article.isPartOf['@type'], 'Book');
+  assert.equal(article.isPartOf.name, work.venue);
   assert.equal(article.isPartOf.isbn, work.proceedings.isbn);
   assert.equal(article.pageStart, work.proceedings.firstPage);
   assert.equal(article.pageEnd, undefined);
-  assert.deepEqual(article.isPartOf.about.organizer.map(item => item.name), work.proceedings.organizers);
+  for (const detail of [work.proceedings.location, ...work.proceedings.organizers]) {
+    assert.ok(article.isPartOf.description.includes(detail), detail);
+  }
   assert.equal(article.isPartOf.publisher, undefined);
   for (const target of ['/academia/', '/side-projects/smart-vehicle/', '/cv/']) {
     assert.ok((await (await get(target)).text()).includes(work.title), target);
